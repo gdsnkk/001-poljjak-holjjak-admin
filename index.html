@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>폴짝홀짝 어드민</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#0f0c1e;--panel:#181430;--panel2:#211b40;--line:#352c5c;--ink:#f4eeff;--dim:#a99ed6;--faint:#6f6598;
+    --gold:#ffd23e;--gold2:#ffe58a;--cyan:#63e0ff;--green:#6ee7a0;--amber:#ffb454;--red:#ff6b81;--violet:#b9a5ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  input,textarea,select,button{font-family:inherit}
+  /* login */
+  #login{max-width:360px;margin:12vh auto;padding:26px;background:var(--panel);border:1px solid var(--line);border-radius:16px}
+  #login h1{font-size:19px;margin:0 0 4px}#login p{font-size:12px;color:var(--dim);margin:0 0 18px}
+  .fld{margin-bottom:12px}.fld label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px}
+  .fld input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:11px 12px;font-size:14px}
+  .btn{border:none;font-weight:800;font-size:13.5px;padding:11px 16px;border-radius:11px;cursor:pointer}
+  .btn.pri{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#2a2000;width:100%}
+  .btn.gh{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn.sm{padding:6px 11px;font-size:12px;border-radius:9px}
+  .err{color:var(--red);font-size:12.5px;margin-top:10px;min-height:16px}
+  /* app */
+  .app{display:flex;min-height:100vh}.app[hidden]{display:none}
+  .side{width:200px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+  .brand{padding:6px 8px 14px;font-weight:900;font-size:15px}.brand span{display:block;font-size:10px;color:var(--faint);letter-spacing:.1em;font-weight:600}
+  .nav{background:none;border:none;color:var(--dim);font-size:13.5px;font-weight:700;text-align:left;padding:10px 11px;border-radius:10px;cursor:pointer}
+  .nav:hover{background:var(--panel2);color:var(--ink)}.nav.on{background:var(--gold);color:#2a2000}
+  .side .foot{margin-top:auto;font-size:11px;color:var(--faint)}
+  .main{flex:1;padding:22px 24px;min-width:0}
+  .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .head h2{margin:0;font-size:20px}
+  section{display:none}section.on{display:block}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 17px;margin-bottom:15px}
+  .panel h3{margin:0 0 12px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:15px}@media(max-width:720px){.kpis{grid-template-columns:1fr 1fr}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi .l{font-size:11px;color:var(--dim)}.kpi .v{font-size:24px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+  canvas{width:100%;height:auto;display:block}
+  .cfgrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.cfgrow:last-child{border:none}
+  .cfgrow label{width:150px;flex:none;font-size:13px}.cfgrow .live{width:70px;flex:none;font-size:11px;color:var(--faint);text-align:right}
+  .cfgrow input,.cfgrow textarea{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 9px;font-size:13px;min-width:60px}
+  .btns{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}
+  .btn.test{background:var(--panel2);color:var(--cyan);border:1px solid var(--cyan)}
+  .btn.pub{background:linear-gradient(180deg,var(--gold),var(--gold2));color:#2a2000}
+  table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
+  .tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px}.tag.u{color:var(--dim);background:var(--panel2)}.tag.t{color:var(--amber);background:rgba(255,180,84,.14)}.tag.a{color:var(--cyan);background:rgba(99,224,255,.14)}
+  .search{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 11px;font-size:13px;width:200px}
+  .fld2{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.fld2>div{flex:1;min-width:120px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--gold);color:#2a2000;font-weight:800;font-size:13px;padding:11px 18px;border-radius:11px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}.toast.bad{background:var(--red);color:#fff}
+  .setup{max-width:420px;margin:12vh auto;padding:24px;background:var(--panel);border:1px solid var(--amber);border-radius:16px;font-size:13.5px;line-height:1.7}
+  .setup code{background:var(--panel2);padding:1px 5px;border-radius:4px;color:var(--gold2)}
+</style>
+</head>
+<body>
+
+<!-- ⚙️ 설정: Supabase 대시보드 → Settings → API 에서 복사해 아래 두 값 채우세요 -->
+<script>
+  const SUPABASE_URL      = "https://sjnhitjxohrievxjywpv.supabase.co";     // 예: https://abcd1234.supabase.co
+  const SUPABASE_ANON_KEY = "sb_publishable_3yUqWENtiUeBjLD90BguDg_A0wpfKEN";  // anon public 키 (공개돼도 안전)
+</script>
+
+<div id="setup" class="setup" hidden>
+  ⚠️ <b>설정 필요</b><br>이 파일 상단의 <code>SUPABASE_URL</code>과 <code>SUPABASE_ANON_KEY</code>를
+  Supabase 대시보드 → <b>Settings → API</b>에서 복사해 채운 뒤 다시 열어주세요.
+</div>
+
+<div id="login" hidden>
+  <h1>🐸 폴짝홀짝 어드민</h1>
+  <p>관리자 계정으로 로그인</p>
+  <div class="fld"><label>이메일</label><input id="email" type="email" autocomplete="username"></div>
+  <div class="fld"><label>비밀번호</label><input id="pw" type="password" autocomplete="current-password"></div>
+  <button class="btn pri" id="loginBtn">로그인</button>
+  <button class="btn gh sm" id="signupBtn" style="width:100%;margin-top:8px">계정 만들기 (최초 1회)</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="noadmin" class="setup" hidden>
+  🚫 <b>관리자 권한이 없어요.</b><br>이 계정을 관리자로 지정하려면 Supabase <b>SQL Editor</b>에서 한 번 실행(본인 이메일로):<br>
+  <code>update public.profiles set role='admin' where id=(select id from auth.users where email='본인이메일');</code><br>
+  실행 후 이 페이지에서 다시 로그인.<br><br>
+  <button class="btn gh sm" onclick="sb.auth.signOut().then(()=>location.reload())">로그아웃</button>
+</div>
+
+<div class="app" id="app" hidden>
+  <aside class="side">
+    <div class="brand">폴짝홀짝<span>ADMIN · gdsnkk</span></div>
+    <button class="nav on" data-s="dash">📊 대시보드</button>
+    <button class="nav" data-s="econ">⚙️ 이코노미 설정</button>
+    <button class="nav" data-s="ann">📣 공지</button>
+    <button class="nav" data-s="users">👥 유저</button>
+    <div class="foot"><span id="whoami"></span><br><button class="btn gh sm" style="margin-top:8px" onclick="sb.auth.signOut().then(()=>location.reload())">로그아웃</button></div>
+  </aside>
+  <main class="main">
+    <div class="head"><h2 id="title">대시보드</h2></div>
+
+    <section id="dash" class="on">
+      <div class="kpis">
+        <div class="kpi"><div class="l">총 유저</div><div class="v" id="k_users">-</div></div>
+        <div class="kpi"><div class="l">오늘 신규</div><div class="v" id="k_new">-</div></div>
+        <div class="kpi"><div class="l">오늘 플레이</div><div class="v" id="k_plays">-</div></div>
+        <div class="kpi"><div class="l">코인 유통량</div><div class="v" id="k_coins">-</div></div>
+      </div>
+      <div class="panel"><h3>일별 신규 가입 <span style="font-size:11px;color:var(--faint)">최근 14일</span></h3><canvas id="chSignup" width="800" height="200"></canvas></div>
+    </section>
+
+    <section id="econ"><div id="cfgWrap"></div></section>
+
+    <section id="ann">
+      <div class="panel"><h3>새 공지 작성</h3>
+        <div class="fld2">
+          <div><label style="font-size:12px;color:var(--dim)">종류</label><select id="a_kind" class="search" style="width:100%"><option value="notice">공지</option><option value="event">이벤트</option><option value="update">업데이트</option></select></div>
+          <div><label style="font-size:12px;color:var(--dim)">종료일(선택)</label><input id="a_ends" type="date" class="search" style="width:100%"></div>
+        </div>
+        <div class="fld"><label>제목</label><input id="a_title" class="search" style="width:100%"></div>
+        <div class="fld"><label>본문</label><textarea id="a_body" class="search" style="width:100%;min-height:64px"></textarea></div>
+        <div class="btns"><button class="btn pub" id="a_post">공지 등록 (즉시 노출)</button></div>
+      </div>
+      <div class="panel"><h3>공지 목록</h3><div id="annList">불러오는 중…</div></div>
+    </section>
+
+    <section id="users">
+      <div class="panel">
+        <h3>유저 <input class="search" id="u_search" placeholder="닉네임/코드 검색 후 Enter"></h3>
+        <div style="overflow-x:auto"><table id="userTbl"><tbody></tbody></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sb;
+function toast(m,bad){var t=document.getElementById("toast");t.textContent=m;t.className="toast on"+(bad?" bad":"");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2600);}
+function $(id){return document.getElementById(id);}
+
+(async function(){
+  if(SUPABASE_URL.startsWith("여기에")||SUPABASE_ANON_KEY.startsWith("여기에")){ $("setup").hidden=false; return; }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const {data:{session}} = await sb.auth.getSession();
+  if(session) enter(); else $("login").hidden=false;
+})();
+
+// ---- auth ----
+$("loginBtn")?.addEventListener("click", async ()=>{
+  const {error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("pw").value});
+  if(error){ $("loginErr").textContent=error.message; return; } enter();
+});
+$("signupBtn")?.addEventListener("click", async ()=>{
+  const {error}=await sb.auth.signUp({email:$("email").value.trim(),password:$("pw").value});
+  if(error){ $("loginErr").textContent=error.message; return; }
+  toast("계정 생성됨 — 로그인 해주세요");
+});
+
+async function enter(){
+  const {data:isAdmin} = await sb.rpc("is_admin");
+  $("login").hidden=true;
+  if(!isAdmin){ $("noadmin").hidden=false; return; }
+  const {data:{user}} = await sb.auth.getUser();
+  $("whoami").textContent="👤 "+(user?.email||"admin");
+  $("app").hidden=false;
+  loadDash(); loadConfig(); loadAnn(); loadUsers("");
+}
+
+// ---- nav ----
+const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리"};
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".nav").forEach(x=>x.classList.remove("on")); b.classList.add("on");
+  const s=b.dataset.s; document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id===s));
+  $("title").textContent=titles[s];
+});
+
+// ---- dashboard ----
+async function loadDash(){
+  const {data:ov}=await sb.rpc("admin_overview");
+  if(ov){ $("k_users").textContent=(ov.total_users||0).toLocaleString(); $("k_new").textContent=ov.new_today||0;
+    $("k_plays").textContent=(ov.plays_today||0).toLocaleString(); $("k_coins").textContent=(ov.coins_circulating||0).toLocaleString(); }
+  const {data:ts}=await sb.rpc("admin_daily_signups",{p_days:14});
+  if(ts) lineChart($("chSignup"), ts.map(r=>Number(r.cnt)), "#6ee7a0");
+}
+function lineChart(cv,data,color){ if(!cv||!data.length)return; const x=cv.getContext("2d"),W=cv.width,H=cv.height,p=24;
+  x.clearRect(0,0,W,H); const mx=Math.max(1,...data),mn=Math.min(0,...data);
+  x.strokeStyle="#352c5c";x.lineWidth=1;for(let g=0;g<4;g++){const y=p+(H-2*p)*g/3;x.beginPath();x.moveTo(p,y);x.lineTo(W-p,y);x.stroke();}
+  x.strokeStyle=color;x.lineWidth=2.5;x.beginPath();
+  data.forEach((v,i)=>{const px=p+(W-2*p)*i/(data.length-1||1),py=p+(H-2*p)*(1-(v-mn)/((mx-mn)||1));i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();
+}
+
+// ---- economy config ----
+async function loadConfig(){
+  const {data,error}=await sb.from("game_config").select("*").order("key");
+  const wrap=$("cfgWrap"); wrap.innerHTML="";
+  if(error){wrap.innerHTML="<div class='panel'>설정 로드 실패: "+error.message+"</div>";return;}
+  (data||[]).forEach(row=>{
+    const eff = row.value_draft || row.value || {};
+    const live = row.value || {};
+    const card=document.createElement("div"); card.className="panel";
+    let h="<h3>"+row.key+" <span style='font-size:11px;color:var(--amber)'>draft 편집</span></h3>";
+    Object.keys(eff).forEach(k=>{
+      const v=eff[k], isNum=typeof v==="number";
+      const val=isNum? v : JSON.stringify(v);
+      h+="<div class='cfgrow'><label>"+k+"</label>"+
+         (isNum?"<input data-k='"+k+"' data-num='1' value='"+val+"'>":"<textarea data-k='"+k+"'>"+val+"</textarea>")+
+         "<div class='live'>live "+(typeof live[k]==="object"?"…":live[k])+"</div></div>";
+    });
+    h+="<div class='btns'><button class='btn test' data-act='draft'>테스트에 적용</button><button class='btn pub' data-act='pub'>배포하기 (draft→live)</button></div>";
+    card.innerHTML=h;
+    card.querySelector("[data-act=draft]").onclick=()=>saveDraft(row.key,card);
+    card.querySelector("[data-act=pub]").onclick=async ()=>{
+      const {error}=await sb.rpc("publish_config",{p_group:row.key});
+      error?toast(error.message,1):(toast("🚀 "+row.key+" 라이브 배포됨"),loadConfig());
+    };
+    wrap.appendChild(card);
+  });
+}
+async function saveDraft(key,card){
+  const obj={};
+  card.querySelectorAll("[data-k]").forEach(el=>{
+    const k=el.dataset.k;
+    if(el.dataset.num) obj[k]=Number(el.value);
+    else { try{obj[k]=JSON.parse(el.value);}catch(e){obj[k]=el.value;} }
+  });
+  const {error}=await sb.rpc("set_config_draft",{p_group:key,p_value:obj});
+  error?toast(error.message,1):toast("✅ "+key+" 테스트(draft) 저장됨");
+}
+
+// ---- announcements ----
+$("a_post").addEventListener("click", async ()=>{
+  const {error}=await sb.rpc("admin_post_announcement",{
+    p_title:$("a_title").value.trim(), p_body:$("a_body").value.trim(),
+    p_kind:$("a_kind").value, p_ends:$("a_ends").value||null });
+  if(error){toast(error.message,1);return;}
+  $("a_title").value="";$("a_body").value=""; toast("📣 공지 등록됨"); loadAnn();
+});
+async function loadAnn(){
+  const {data}=await sb.rpc("admin_list_announcements");
+  const el=$("annList"); if(!data){el.textContent="없음";return;}
+  el.innerHTML = data.map(a=>"<div class='cfgrow'><label style='width:auto;flex:1'>["+a.kind+"] "+a.title+(a.active?"":" <span style='color:var(--faint)'>(내림)</span>")+"</label>"+
+    "<button class='btn gh sm' data-id='"+a.id+"' data-on='"+(!a.active)+"'>"+(a.active?"내리기":"올리기")+"</button></div>").join("") || "없음";
+  el.querySelectorAll("[data-id]").forEach(b=>b.onclick=async ()=>{
+    const {error}=await sb.rpc("admin_set_announcement",{p_id:Number(b.dataset.id),p_active:b.dataset.on==="true"});
+    error?toast(error.message,1):(toast("변경됨"),loadAnn());
+  });
+}
+
+// ---- users ----
+$("u_search").addEventListener("keydown",e=>{ if(e.key==="Enter") loadUsers(e.target.value.trim()); });
+async function loadUsers(q){
+  const {data,error}=await sb.rpc("admin_list_users",{p_search:q||"",p_limit:50});
+  const t=$("userTbl");
+  if(error){t.innerHTML="<tr><td>"+error.message+"</td></tr>";return;}
+  let h="<tr><th>닉네임</th><th>코인</th><th>역할</th><th>세그먼트</th><th>가입</th><th>액션</th></tr>";
+  (data||[]).forEach(u=>{
+    const tag=u.role==="admin"?"a":u.role==="tester"?"t":"u";
+    h+="<tr><td>"+u.nickname+"</td><td>"+(u.coins||0).toLocaleString()+"</td><td><span class='tag "+tag+"'>"+u.role+"</span></td>"+
+       "<td>"+((u.segments||[]).join(", ")||"—")+"</td><td>"+(u.created_at||"").slice(0,10)+"</td>"+
+       "<td><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button> "+
+       "<button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button> "+
+       "<button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>세그먼트</button></td></tr>";
+  });
+  t.innerHTML=h;
+  t.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(b.dataset.a,b.dataset.id));
+}
+async function userAction(act,id){
+  let error;
+  if(act==="coin"){ const n=prompt("지급할 코인 (음수=차감)"); if(n===null)return;
+    ({error}=await sb.rpc("admin_grant_coins",{p_target:id,p_amount:Number(n),p_reason:"🛠 어드민 지급"})); }
+  else if(act==="role"){ const r=prompt("역할: user / tester / admin"); if(!r)return;
+    ({error}=await sb.rpc("admin_set_role",{p_target:id,p_role:r})); }
+  else if(act==="seg"){ const s=prompt("세그먼트 추가 (예: promo1)"); if(!s)return;
+    ({error}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:s,p_add:true})); }
+  error?toast(error.message,1):(toast("완료"),loadUsers($("u_search").value.trim()));
+}
+</script>
+</body>
+</html>
