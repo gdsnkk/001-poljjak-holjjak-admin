@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>폴짝홀짝 서버 연동 테스트</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#141026;--panel:#1e1740;--panel2:#241c46;--line:#4a3f7a;--ink:#f4eeff;--dim:#a99ed6;--faint:#6f6598;--gold:#ffd23e;--gold2:#ffe58a;--cyan:#63e0ff;--green:#6ee7a0;--red:#ff6b81;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Apple SD Gothic Neo",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;line-height:1.5}
+  input,select,button{font-family:inherit;font-size:16px}
+  .wrap{max-width:520px;margin:0 auto;padding:18px 16px 60px}
+  h1{font-size:19px;margin:0 0 4px}.sub{color:var(--dim);font-size:12.5px;margin:0 0 16px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:14px}
+  .panel h2{margin:0 0 12px;font-size:14px;color:var(--gold2)}
+  .fld{margin-bottom:11px}.fld label{display:block;font-size:12px;color:var(--dim);margin-bottom:5px}
+  .in{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:11px 12px}
+  .btn{border:none;font-weight:800;font-size:14px;padding:12px 15px;border-radius:11px;cursor:pointer;background:linear-gradient(180deg,var(--gold),var(--gold2));color:#2a2000}
+  .btn.gh{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .btn.sm{padding:8px 12px;font-size:13px}
+  .row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1;min-width:90px}
+  .big{font-size:15px}.big b{color:var(--gold2);font-size:20px;font-variant-numeric:tabular-nums}
+  .err{color:var(--red);font-size:12.5px;min-height:15px;margin-top:8px}
+  ol{list-style:none;margin:0;padding:0}li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}li:last-child{border:none}
+  .rk{color:var(--dim);width:26px}.sc{color:var(--gold2);font-weight:800}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--gold);color:#2a2000;font-weight:800;font-size:13px;padding:11px 18px;border-radius:11px;opacity:0;transition:.25s;z-index:9;max-width:90vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}.toast.bad{background:var(--red);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐸 폴짝홀짝 서버 연동 테스트</h1>
+  <p class="sub">로그인 → 프로필 → 게임기록(submit_run) → 랭킹이 실제로 도는지 확인</p>
+
+  <div class="panel" id="loginP">
+    <h2>로그인</h2>
+    <div class="fld"><label>이메일</label><input id="email" class="in" type="email" autocomplete="username"></div>
+    <div class="fld"><label>비밀번호</label><input id="pw" class="in" type="password" autocomplete="current-password"></div>
+    <div class="row"><button class="btn" id="loginBtn">로그인</button><button class="btn gh" id="signupBtn">계정 만들기</button></div>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <div id="appP" hidden>
+    <div class="panel">
+      <h2>내 프로필 <button class="btn gh sm" id="logout" style="float:right">로그아웃</button></h2>
+      <div class="fld"><label>닉네임 (8자)</label><div class="row"><input id="nick" class="in" maxlength="8"><button class="btn gh sm" id="saveNick" style="flex:none">저장</button></div></div>
+      <p class="big">코인: <b id="coins">-</b></p>
+      <p class="big">친구코드: <b id="fcode" style="font-size:15px">-</b></p>
+    </div>
+
+    <div class="panel">
+      <h2>게임 한 판 기록 (submit_run)</h2>
+      <div class="row">
+        <div class="fld"><label>모드</label><select id="mode" class="in"><option value="endless">엔드리스</option><option value="daily">오늘의도전</option></select></div>
+        <div class="fld"><label>도달 층</label><input id="floor" class="in" type="number" value="20" inputmode="numeric"></div>
+        <div class="fld"><label>결과</label><select id="outcome" class="in"><option value="cashout">회수</option><option value="death">사망</option></select></div>
+      </div>
+      <button class="btn" id="submitRun" style="width:100%">서버에 기록 보내기</button>
+      <div class="err" id="runErr"></div>
+    </div>
+
+    <div class="panel">
+      <h2>추천코드 입력 (양쪽 +300)</h2>
+      <div class="row"><input id="refcode" class="in" placeholder="친구 코드" maxlength="8"><button class="btn gh sm" id="redeemBtn" style="flex:none">입력</button></div>
+    </div>
+
+    <div class="panel"><h2>🏆 엔드리스 랭킹 (역대)</h2><ol id="lb">불러오는 중…</ol></div>
+    <div class="panel"><h2>🕐 최근 플레이 (전체 유저)</h2><ol id="recent">불러오는 중…</ol></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL="https://sjnhitjxohrievxjywpv.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_3yUqWENtiUeBjLD90BguDg_A0wpfKEN";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+let ME=null;
+function toast(m,bad){const t=$("toast");t.textContent=m;t.className="toast on"+(bad?" bad":"");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("on"),2600);}
+
+(async()=>{const{data:{session}}=await sb.auth.getSession();session?enter():0;})();
+$("loginBtn").onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$("email").value.trim(),password:$("pw").value});error?$("loginErr").textContent=error.message:enter();};
+$("signupBtn").onclick=async()=>{const{error}=await sb.auth.signUp({email:$("email").value.trim(),password:$("pw").value});error?$("loginErr").textContent=error.message:toast("계정 생성! 로그인 하세요");};
+$("logout").onclick=()=>sb.auth.signOut().then(()=>location.reload());
+
+async function enter(){
+  const{data:{user}}=await sb.auth.getUser();ME=user;
+  $("loginP").hidden=true;$("appP").hidden=false;
+  await loadProfile();loadLB();loadRecent();
+}
+async function loadProfile(){
+  const{data,error}=await sb.from("profiles").select("nickname,coins,friend_code").eq("id",ME.id).single();
+  if(error){toast(error.message,1);return;}
+  $("nick").value=data.nickname;$("coins").textContent=Number(data.coins).toLocaleString();$("fcode").textContent=data.friend_code;
+}
+$("saveNick").onclick=async()=>{const{error}=await sb.from("profiles").update({nickname:$("nick").value.trim().slice(0,8)}).eq("id",ME.id);error?toast(error.message,1):(toast("닉네임 저장됨"),loadProfile(),loadLB());};
+
+$("submitRun").onclick=async()=>{
+  $("runErr").textContent="";
+  const{data,error}=await sb.rpc("submit_run",{p_mode:$("mode").value,p_floor:Number($("floor").value),p_prob:0.05,p_combo:{character:"chick",platform:"stone",accessory:"none",lvl:1},p_outcome:$("outcome").value});
+  if(error){$("runErr").textContent=error.message;return;}
+  toast("기록됨! 상금 +"+data.reward+" → 코인 "+data.coins);
+  loadProfile();loadLB();loadRecent();
+};
+$("redeemBtn").onclick=async()=>{const{error}=await sb.rpc("redeem_referral",{p_code:$("refcode").value.trim()});error?toast(error.message,1):(toast("추천 보상 +300!"),loadProfile());};
+
+async function loadLB(){
+  const{data,error}=await sb.from("personal_best").select("nickname,floor").eq("mode","endless").eq("period_key","all").order("floor",{ascending:false}).limit(20);
+  $("lb").innerHTML=error?"오류":(data.length?data.map((r,i)=>"<li><span><span class='rk'>"+(i+1)+"</span>"+r.nickname+"</span><span class='sc'>"+r.floor+"칸</span></li>").join(""):"<li>아직 기록 없음 — 위에서 기록 보내보세요</li>");
+}
+async function loadRecent(){
+  const{data,error}=await sb.from("runs").select("nickname,mode,floor").order("created_at",{ascending:false}).limit(10);
+  $("recent").innerHTML=error?"오류":(data.length?data.map(r=>"<li><span>"+r.nickname+" <span class='rk'>"+(r.mode==="daily"?"도전":"엔드")+"</span></span><span class='sc'>"+r.floor+"칸</span></li>").join(""):"<li>없음</li>");
+}
+</script>
+</body>
+</html>
