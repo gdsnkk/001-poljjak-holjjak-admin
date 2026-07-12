@@ -180,6 +180,15 @@ document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{
   $("title").textContent=titles[s];window.scrollTo(0,0);
 });
 
+// 자동 새로고침(20초): 대시보드 숫자 + 유저 목록만. 편집 폼(이코노미/공지)은 입력 보호 위해 제외.
+setInterval(()=>{
+  if($("app").hidden) return;
+  const active=[...document.querySelectorAll("section")].find(x=>x.classList.contains("on"));
+  if(!active) return;
+  if(active.id==="dash") loadDash();
+  else if(active.id==="users" && document.activeElement!==$("u_search")) loadUsers($("u_search").value.trim());
+},20000);
+
 async function loadDash(){
   const {data:ov}=await sb.rpc("admin_overview");
   if(ov){$("k_users").textContent=(ov.total_users||0).toLocaleString();$("k_new").textContent=ov.new_today||0;$("k_plays").textContent=(ov.plays_today||0).toLocaleString();$("k_coins").textContent=(ov.coins_circulating||0).toLocaleString();}
