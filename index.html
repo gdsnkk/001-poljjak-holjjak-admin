@@ -44,12 +44,35 @@
   .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
   .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px}
   .kpi .l{font-size:11px;color:var(--dim)}.kpi .v{font-size:22px;font-weight:900;margin-top:3px;font-variant-numeric:tabular-nums}
+  .kpi .delta{font-size:11px;font-weight:800;margin-top:3px}.kpi .delta.up{color:var(--green)}.kpi .delta.down{color:var(--red)}
+  .kpi.muted{opacity:.5}
+  .seg-toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .segbtn{background:transparent;border:none;color:var(--dim);padding:7px 15px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .segbtn.on{background:var(--violet);color:#1a1330}
+  .chtip{position:fixed;transform:translate(-50%,-100%);background:#000;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;pointer-events:none;z-index:9999;white-space:nowrap;display:none}
+  canvas{max-width:100%;height:auto}
   canvas{width:100%;height:auto;display:block}
   .cfgrow{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.cfgrow:last-child{border:none}
   .cfgrow label{width:150px;flex:none;font-size:13.5px}
   .cfgrow .val{flex:1;min-width:110px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:9px 11px}
   .cfgrow .live{font-size:11px;color:var(--faint)}
   .btns{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap}.btns .btn{flex:1;min-width:130px}
+  .urow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .bulkbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--violet);border-radius:10px;padding:8px 11px;margin-bottom:10px;font-size:12px}
+  .bulkbar b{color:var(--violet)}
+  tr.urow-main td{vertical-align:middle}
+  .udet{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px 14px;background:var(--panel2);border-radius:8px;padding:12px}
+  .udet>div{font-size:12.5px;font-weight:700}.udet label{display:block;font-size:10px;color:var(--faint);font-weight:600;margin-bottom:2px}
+  .minirow{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .minirow .mg-emoji{font-size:24px;width:30px;text-align:center;flex:none}
+  .minirow .mg-info{flex:1;min-width:0}.minirow .mg-info b{font-size:13px}.minirow .mg-info span{display:block;font-size:11px;color:var(--dim);line-height:1.4}
+  .minirow .mg-w{flex:none;text-align:right}.minirow .mg-w label{display:block;font-size:9px;color:var(--faint);margin-bottom:2px}
+  .minirow .mg-w input{width:64px;padding:6px 8px;text-align:center}
+  .rtbar{display:flex;gap:6px;margin-bottom:6px}
+  .rtbtn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
+  .rtbtn:active{background:var(--line)}
+  .rtedit{min-height:360px;max-height:60vh;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.62;color:var(--ink);overflow:auto;outline:none}
+  .rtedit:focus{border-color:var(--violet)}.rtedit b{color:var(--gold2)}
   .legalgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
   @media(max-width:820px){.legalgrid{grid-template-columns:1fr}}
   .pvlabel{font-size:11px;color:var(--faint);margin-bottom:6px}
@@ -109,6 +132,8 @@
     <button class="nav" data-s="econ"><span class="ic">⚙️</span>이코노미</button>
     <button class="nav" data-s="ann"><span class="ic">📣</span>공지</button>
     <button class="nav" data-s="users"><span class="ic">👥</span>유저</button>
+    <button class="nav" data-s="shop"><span class="ic">🛒</span>상점</button>
+    <button class="nav" data-s="mini"><span class="ic">🎮</span>미니게임</button>
     <button class="nav" data-s="terms"><span class="ic">📄</span>약관</button>
     <button class="nav" data-s="privacy"><span class="ic">🔒</span>개인정보</button>
     <div class="navfoot"><span id="whoami"></span><br><button class="btn gh sm" id="logout1" style="margin-top:8px">로그아웃</button></div>
@@ -117,13 +142,23 @@
     <div class="topbar"><h2 id="title">대시보드</h2><button class="btn gh sm" id="logout3">로그아웃</button></div>
 
     <section id="dash" class="on">
-      <div class="kpis">
-        <div class="kpi"><div class="l">총 유저</div><div class="v" id="k_users">-</div></div>
-        <div class="kpi"><div class="l">오늘 신규</div><div class="v" id="k_new">-</div></div>
-        <div class="kpi"><div class="l">오늘 플레이</div><div class="v" id="k_plays">-</div></div>
-        <div class="kpi"><div class="l">코인 유통</div><div class="v" id="k_coins">-</div></div>
+      <div class="urow" style="justify-content:space-between;align-items:center">
+        <div class="seg-toggle"><button class="segbtn on" data-p="day">일별</button><button class="segbtn" data-p="week">주별</button></div>
+        <span style="font-size:11px;color:var(--faint)">운영진 제외 · 활성=플레이 기준</span>
       </div>
-      <div class="panel"><h3>일별 신규 가입 <span style="font-size:11px;color:var(--faint)">최근 14일</span></h3><canvas id="chSignup" width="700" height="200"></canvas></div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">신규 <span id="d_new_lbl">오늘</span></div><div class="v" id="k_new">-</div><div class="delta" id="dl_new"></div></div>
+        <div class="kpi"><div class="l">활성 (DAU)</div><div class="v" id="k_dau">-</div><div class="delta" id="dl_dau"></div></div>
+        <div class="kpi"><div class="l">플레이</div><div class="v" id="k_plays">-</div><div class="delta" id="dl_plays"></div></div>
+        <div class="kpi"><div class="l">MAU</div><div class="v" id="k_mau">-</div><div class="delta" style="color:var(--faint)">최근 30일</div></div>
+        <div class="kpi"><div class="l">Stickiness</div><div class="v" id="k_stick">-</div><div class="delta" style="color:var(--faint)">DAU/MAU</div></div>
+        <div class="kpi"><div class="l">총 유저 / 코인유통</div><div class="v" id="k_users">-</div><div class="delta" id="k_coins" style="color:var(--faint)"></div></div>
+        <div class="kpi muted"><div class="l">리워드 시청</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
+        <div class="kpi muted"><div class="l">결제 (건/액)</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
+      </div>
+      <div class="panel"><h3>신규 가입 <span id="ch_unit" style="font-size:11px;color:var(--faint)">최근 14일</span></h3><canvas id="chNew" width="700" height="170"></canvas></div>
+      <div class="panel"><h3>플레이수</h3><canvas id="chPlays" width="700" height="170"></canvas></div>
+      <div class="panel"><h3>활성 유저 (DAU)</h3><canvas id="chDau" width="700" height="170"></canvas></div>
     </section>
 
     <section id="econ"><div id="cfgWrap"></div></section>
@@ -137,6 +172,7 @@
         </div>
         <div class="fld"><label>제목</label><input id="a_title" class="in" placeholder="예: 🎉 주말 코인 2배!"></div>
         <div class="fld"><label>본문 (줄바꿈 그대로 노출됨)</label><textarea id="a_body" class="in" style="min-height:80px"></textarea></div>
+        <div class="fld"><label>이미지 (선택 · 배너)</label><input id="a_image" class="in" type="file" accept="image/*" style="padding:8px"></div>
         <div class="fld"><label>인게임 미리보기</label>
           <div class="preview"><span class="pk" id="pv_k">공지</span><div class="pt" id="pv_t">제목 미리보기</div><div class="pb" id="pv_b">본문이 여기 이렇게 보여요.</div></div>
         </div>
@@ -146,9 +182,56 @@
     </section>
 
     <section id="users">
-      <div class="panel"><h3>유저 <input class="in" id="u_search" style="width:auto;max-width:60%;padding:8px 11px" placeholder="검색 후 Enter"></h3>
+      <div class="panel">
+        <h3>유저 관리</h3>
+        <div class="urow">
+          <input class="in" id="u_search" style="flex:1;min-width:150px;padding:8px 11px" placeholder="닉네임·이메일 검색 후 Enter">
+          <select class="in" id="u_sort" style="width:auto;padding:8px 11px">
+            <option value="recent">최근활동순</option>
+            <option value="coins">코인순</option>
+            <option value="earned">누적획득순</option>
+            <option value="plays">플레이순</option>
+            <option value="new">가입순</option>
+          </select>
+        </div>
+        <div id="bulkbar" class="bulkbar" style="display:none">
+          <b id="bulkcount">0명 선택</b>
+          <button class="btn gh sm" id="bulk_coin">코인 지급</button>
+          <button class="btn gh sm" id="bulk_role">역할</button>
+          <button class="btn gh sm" id="bulk_seg">+세그먼트</button>
+          <button class="btn gh sm" id="bulk_clear">해제</button>
+        </div>
         <div style="overflow-x:auto"><table id="userTbl"><tbody></tbody></table></div>
-        <p style="font-size:11px;color:var(--faint);margin-top:8px">테스터는 랭킹·통계 제외 · 세그먼트로 프로모션 타겟팅</p>
+        <p style="font-size:11px;color:var(--faint);margin-top:8px">☑ 여러 명 선택 후 일괄 처리 · '상세'로 보유·수집 지표 · 결제·리워드는 수익화 연동 후 집계</p>
+      </div>
+    </section>
+    <section id="shop">
+      <div class="panel">
+        <h3>🎁 갓챠 등급 확률 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <p style="font-size:12px;color:var(--dim);margin:0 0 12px">등급별 가중치를 조정하면 게임 뽑기 확률과 <b>인게임 확률 표기</b>가 함께 바뀌어요. 실제 %는 아이템 수(일반8·레어18·에픽13·전설3)를 반영해 계산됩니다.</p>
+        <div id="gachaRows"></div>
+        <div class="pvlabel" style="margin-top:10px">🔎 실제 확률 미리보기</div>
+        <div id="gachaOdds" class="docpreview" style="min-height:auto;padding:12px 14px;font-size:13px"></div>
+        <div class="btns"><button class="btn test" id="gacha_draft">테스트 적용</button><button class="btn pub" id="gacha_pub">배포하기</button></div>
+      </div>
+      <div class="panel">
+        <h3>🛍 상점 아이템 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <div style="font-size:11px;color:var(--faint);margin-bottom:8px">코스메틱(펫·발판·악세) 가격은 등급별로 적용됩니다.</div>
+        <div id="rarityRows"></div>
+        <div style="font-size:11px;color:var(--faint);margin:12px 0 8px">소모 아이템 — 가격 편집 · 체크 해제 시 상점에서 숨김</div>
+        <div id="shopItemRows"></div>
+        <div class="btns"><button class="btn test" id="shop_draft">테스트 적용</button><button class="btn pub" id="shop_pub">배포하기</button></div>
+        <p style="font-size:11px;color:var(--faint);margin-top:8px">⚠️ 효과(능력치)·새 아이템·아트는 앱 업데이트 필요(그림=클라 코드). 여기선 가격·활성만.</p>
+      </div>
+    </section>
+    <section id="mini">
+      <div class="panel">
+        <h3>🎮 부활 미니게임 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <p style="font-size:12px;color:var(--dim);margin:0 0 12px">엔드리스에서 첨벙 시 랜덤으로 뜨는 실력 부활 게임. 등장 확률(가중치)과 난이도 곡선을 조정해요. <b>가중치 0</b>이면 안 나와요.</p>
+        <div id="miniRows"></div>
+        <div class="cfgrow"><label>난이도 시작값 (diffBase)</label><input class="val" id="mini_base" type="number" step="0.5" inputmode="decimal"><span class="live">0=첫판 쉬움</span></div>
+        <div class="cfgrow"><label>세이브마다 +난이도 (diffStep)</label><input class="val" id="mini_step" type="number" step="0.5" inputmode="decimal"><span class="live">한 판에 여러 번 살수록 가중</span></div>
+        <div class="btns"><button class="btn test" id="mini_draft">테스트 적용</button><button class="btn pub" id="mini_pub">배포하기</button></div>
       </div>
     </section>
     <section id="terms">
@@ -156,8 +239,9 @@
         <h3>📄 서비스 이용약관 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
         <div class="legalgrid">
           <div>
-            <textarea class="in" id="doc_terms" rows="22" oninput="pvDoc('terms')" style="width:100%;resize:vertical;font-size:12.5px;line-height:1.6"></textarea>
-            <p style="font-size:11px;color:var(--faint);margin:6px 0">줄바꿈 <code>&lt;br&gt;</code> · 강조 <code>&lt;b&gt;…&lt;/b&gt;</code>. 테스터는 즉시 draft, 전체 공개는 '배포하기'.</p>
+            <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="terms"><b>B</b> 굵게</button></div>
+            <div class="rtedit" id="doc_terms" contenteditable="true"></div>
+            <p style="font-size:11px;color:var(--faint);margin:6px 0">그냥 <b>엔터로 줄바꿈</b>, 글자 선택 후 <b>'굵게'</b> 버튼. HTML 몰라도 돼요. 테스터는 즉시 draft, 전체 공개는 '배포하기'.</p>
             <div class="btns"><button class="btn test" id="terms_draft">테스트 적용</button><button class="btn pub" id="terms_pub">배포하기</button></div>
           </div>
           <div><div class="pvlabel">🔎 미리보기 (인게임 표시 그대로)</div><div class="docpreview" id="pv_terms"></div></div>
@@ -169,8 +253,9 @@
         <h3>🔒 개인정보처리방침 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
         <div class="legalgrid">
           <div>
-            <textarea class="in" id="doc_privacy" rows="22" oninput="pvDoc('privacy')" style="width:100%;resize:vertical;font-size:12.5px;line-height:1.6"></textarea>
-            <p style="font-size:11px;color:var(--faint);margin:6px 0">줄바꿈 <code>&lt;br&gt;</code> · 강조 <code>&lt;b&gt;…&lt;/b&gt;</code>.</p>
+            <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="privacy"><b>B</b> 굵게</button></div>
+            <div class="rtedit" id="doc_privacy" contenteditable="true"></div>
+            <p style="font-size:11px;color:var(--faint);margin:6px 0">그냥 <b>엔터로 줄바꿈</b>, 글자 선택 후 <b>'굵게'</b> 버튼. HTML 몰라도 돼요.</p>
             <div class="btns"><button class="btn test" id="privacy_draft">테스트 적용</button><button class="btn pub" id="privacy_pub">배포하기</button></div>
           </div>
           <div><div class="pvlabel">🔎 미리보기 (인게임 표시 그대로)</div><div class="docpreview" id="pv_privacy"></div></div>
@@ -204,26 +289,141 @@ async function enter(){
   const {data:{user}}=await sb.auth.getUser();
   $("whoami").textContent="👤 "+(user?.email||"admin");
   $("app").hidden=false;
-  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();
+  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();
 }
 
-const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",terms:"이용약관",privacy:"개인정보처리방침"};
-function pvDoc(which){const t=$("doc_"+which),p=$("pv_"+which);if(t&&p)p.innerHTML=t.value;}
+const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",terms:"이용약관",privacy:"개인정보처리방침"};
+// 갓챠: 게임과 동일하게 등급별 아이템수×가중치로 확률 계산(비밀 캐릭 제외 대표값)
+const GPOOL={common:8,rare:18,epic:13,legend:3};
+const RMETA=[{id:"common",name:"일반",col:"#a99ed6"},{id:"rare",name:"레어",col:"#63e0ff"},{id:"epic",name:"에픽",col:"#b98cff"},{id:"legend",name:"전설",col:"#ffd23e"}];
+let GACHA_CFG={common:60,rare:25,epic:12,legend:3};
+const SHOP_ITEMS=[
+  {id:"charm",ic:"🍀",name:"행운의 부적",price:120},{id:"honey",ic:"🍯",name:"꿀단지",price:160},
+  {id:"tube",ic:"🛟",name:"구명 튜브",price:180},{id:"feather",ic:"🪶",name:"천사의 깃털",price:220},
+  {id:"boost",ic:"🚀",name:"점프 부스터",price:40},{id:"bless",ic:"✨",name:"행운의 축복",price:100},
+  {id:"double",ic:"💎",name:"한탕",price:120},{id:"sure",ic:"🎯",name:"정조준",price:150}
+];
+const RARITY_META=[{id:"common",name:"일반",def:150},{id:"rare",name:"레어",def:300},{id:"epic",name:"에픽",def:550},{id:"legend",name:"전설",def:950}];
+let SHOP_CFG={rarityPrice:{},items:{}};
+async function loadShop(){
+  const {data}=await sb.from("game_config").select("value,value_draft").eq("key","gacha").maybeSingle();
+  const w=(data&&(data.value_draft||data.value)&&(data.value_draft||data.value).weights)||{common:60,rare:25,epic:12,legend:3};
+  GACHA_CFG=w; renderGacha();
+  const {data:s}=await sb.from("game_config").select("value,value_draft").eq("key","shop").maybeSingle();
+  SHOP_CFG=(s&&(s.value_draft||s.value))||{rarityPrice:{},items:{}};
+  renderShopItems();
+}
+function renderShopItems(){
+  const rr=$("rarityRows"),ir=$("shopItemRows");if(!rr||!ir)return;
+  const rp=SHOP_CFG.rarityPrice||{};
+  rr.innerHTML=RARITY_META.map(r=>"<div class='cfgrow'><label>"+r.name+" 가격</label><input class='val rp' data-id='"+r.id+"' type='number' min='0' step='10' value='"+(rp[r.id]!=null?rp[r.id]:r.def)+"'></div>").join("");
+  const its=SHOP_CFG.items||{};
+  ir.innerHTML=SHOP_ITEMS.map(it=>{const o=its[it.id]||{};const price=(o.price!=null?o.price:it.price);const act=(o.active!==false);
+    return "<div class='cfgrow'><label style='flex:1'><span style='font-size:16px'>"+it.ic+"</span> "+it.name+"</label><input class='val si' data-id='"+it.id+"' type='number' min='0' step='10' value='"+price+"' style='width:80px'><label style='width:auto;display:flex;align-items:center;gap:4px;font-size:11px'><input type='checkbox' class='sa' data-id='"+it.id+"'"+(act?" checked":"")+"> 활성</label></div>";
+  }).join("");
+}
+async function saveShop(pub){
+  const rarityPrice={};document.querySelectorAll(".rp").forEach(el=>rarityPrice[el.dataset.id]=Number(el.value)||0);
+  const items={};SHOP_ITEMS.forEach(it=>{items[it.id]={price:Number((document.querySelector(".si[data-id='"+it.id+"']")||{}).value)||0,active:!!(document.querySelector(".sa[data-id='"+it.id+"']")||{}).checked};});
+  let {error}=await sb.rpc("set_config_draft",{p_group:"shop",p_value:{rarityPrice,items}});
+  if(error){toast(error.message,1);return;}
+  if(pub){({error}=await sb.rpc("publish_config",{p_group:"shop"}));if(error){toast(error.message,1);return;}toast("🚀 상점 배포됨");}
+  else toast("✅ 저장됨 (테스터 즉시 반영)");
+}
+(function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("shop_draft",()=>saveShop(false));b("shop_pub",()=>saveShop(true));})();
+function renderGacha(){
+  const wrap=$("gachaRows");if(!wrap)return;
+  wrap.innerHTML=RMETA.map(r=>{const w=(GACHA_CFG[r.id]!=null?GACHA_CFG[r.id]:0);
+    return "<div class='cfgrow'><label style='color:"+r.col+"'>"+r.name+" 가중치</label><input class='val gw' data-id='"+r.id+"' type='number' min='0' step='1' value='"+w+"'><span class='live' id='od_"+r.id+"'></span></div>";
+  }).join("");
+  wrap.querySelectorAll(".gw").forEach(el=>el.oninput=updOdds);
+  updOdds();
+}
+function updOdds(){
+  const ws={};document.querySelectorAll(".gw").forEach(el=>ws[el.dataset.id]=Number(el.value)||0);
+  let tot=0;RMETA.forEach(r=>tot+=GPOOL[r.id]*(ws[r.id]||0));
+  const parts=RMETA.map(r=>{const pct=tot?Math.round(GPOOL[r.id]*(ws[r.id]||0)/tot*1000)/10:0;const el=$("od_"+r.id);if(el)el.textContent=pct+"%";return "<span style='color:"+r.col+";font-weight:800'>"+r.name+" "+pct+"%</span>";});
+  if($("gachaOdds"))$("gachaOdds").innerHTML="🎲 "+parts.join("  ·  ");
+}
+async function saveGacha(pub){
+  const ws={};document.querySelectorAll(".gw").forEach(el=>ws[el.dataset.id]=Number(el.value)||0);
+  let {error}=await sb.rpc("set_config_draft",{p_group:"gacha",p_value:{weights:ws}});
+  if(error){toast(error.message,1);return;}
+  if(pub){({error}=await sb.rpc("publish_config",{p_group:"gacha"}));if(error){toast(error.message,1);return;}toast("🚀 갓챠 확률 배포됨");}
+  else toast("✅ 저장됨 (테스터 즉시 반영)");
+}
+(function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("gacha_draft",()=>saveGacha(false));b("gacha_pub",()=>saveGacha(true));})();
+const MINI_META=[
+  {id:"timing",emoji:"⏱",name:"타이밍 멈추기",how:"움직이는 노란 막대를 초록 칸에서 탭해 멈춰요."},
+  {id:"mash",emoji:"🔥",name:"연타",how:"게이지가 꽉 찰 때까지 빠르게 탭탭탭!"},
+  {id:"ring",emoji:"🎯",name:"원 맞추기",how:"줄어드는 노란 원이 초록 링과 겹치는 순간 탭!"},
+  {id:"hold",emoji:"✊",name:"꾹 참기",how:"꾹 눌러 채우고 초록 칸에서 손을 떼요(꽉 차기 전)."},
+  {id:"arrow",emoji:"⬅➡",name:"방향 연타",how:"화면에 뜬 화살표 방향을 빠르게 여러 번 탭!"},
+  {id:"balance",emoji:"⚖️",name:"균형 잡기",how:"치우친 반대쪽을 탭해 공을 가운데 초록칸에 유지·충전!"},
+  {id:"color",emoji:"🚦",name:"신호등",how:"초록일 때만 3번 탭! 빨강·대기 중 누르면 실패."},
+  {id:"whack",emoji:"🦫",name:"두더지 잡기",how:"나타나는 목표를 사라지기 전에 정확히 콕!"}
+];
+let MINI_CFG={weights:{},diffBase:0,diffStep:1};
+async function loadMini(){
+  const {data}=await sb.from("game_config").select("value,value_draft").eq("key","minigames").maybeSingle();
+  const c=(data&&(data.value_draft||data.value))||{};
+  MINI_CFG={weights:(c.weights||{}),diffBase:(c.diffBase!=null?c.diffBase:0),diffStep:(c.diffStep!=null?c.diffStep:1)};
+  renderMini();
+}
+function renderMini(){
+  const wrap=$("miniRows");if(!wrap)return;
+  wrap.innerHTML=MINI_META.map(m=>{const w=(MINI_CFG.weights[m.id]!=null?MINI_CFG.weights[m.id]:1);
+    return "<div class='minirow'><div class='mg-emoji'>"+m.emoji+"</div><div class='mg-info'><b>"+m.name+"</b><span>"+m.how+"</span></div><div class='mg-w'><label>가중치</label><input class='in mgw' data-id='"+m.id+"' type='number' min='0' step='0.5' value='"+w+"'></div></div>";
+  }).join("");
+  if($("mini_base"))$("mini_base").value=MINI_CFG.diffBase;
+  if($("mini_step"))$("mini_step").value=MINI_CFG.diffStep;
+}
+function collectMini(){const weights={};document.querySelectorAll(".mgw").forEach(el=>{weights[el.dataset.id]=Number(el.value)||0;});return {weights,diffBase:Number($("mini_base").value)||0,diffStep:Number($("mini_step").value)||0};}
+async function saveMini(pub){
+  let {error}=await sb.rpc("set_config_draft",{p_group:"minigames",p_value:collectMini()});
+  if(error){toast(error.message,1);return;}
+  if(pub){({error}=await sb.rpc("publish_config",{p_group:"minigames"}));if(error){toast(error.message,1);return;}toast("🚀 미니게임 배포됨");}
+  else toast("✅ 저장됨 (테스터 즉시 반영)");
+}
+(function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("mini_draft",()=>saveMini(false));b("mini_pub",()=>saveMini(true));})();
+// contentEditable → 깔끔한 <br>/<b> HTML로 직렬화 (관리자가 HTML 신경 안 쓰게)
+function docHTML(el){
+  if(!el)return "";const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");let out="";
+  const walk=(node,bold)=>{node.childNodes.forEach(n=>{
+    if(n.nodeType===3){out+=esc(n.textContent);return;}
+    if(n.nodeType!==1)return;const tag=n.tagName.toLowerCase();
+    if(tag==="br"){out+="<br>";return;}
+    const fw=(n.style&&n.style.fontWeight)||"";
+    let b=bold||tag==="b"||tag==="strong"||fw==="bold"||fw==="bolder"||parseInt(fw,10)>=600;
+    const block=/^(div|p|li|h[1-6])$/.test(tag);
+    if(block&&out.length&&!out.endsWith("<br>"))out+="<br>";
+    if(b&&!bold)out+="<b>";walk(n,b);if(b&&!bold)out+="</b>";
+  });};
+  walk(el,false);
+  return out.replace(/(<br>){3,}/g,"<br><br>").replace(/^(<br>)+|(<br>)+$/g,"").replace(/<b>\s*<\/b>/g,"");
+}
+function pvDoc(which){const t=$("doc_"+which),p=$("pv_"+which);if(t&&p)p.innerHTML=docHTML(t);}
 async function loadLegal(){
   const {data}=await sb.from("game_config").select("key,value,value_draft").in("key",["legal_terms","legal_privacy"]);
   const map={};(data||[]).forEach(r=>map[r.key]=r);
   const get=k=>{const r=map[k];if(!r)return "";const d=r.value_draft&&r.value_draft.html,l=r.value&&r.value.html;return (d!=null?d:(l||""));};
-  if($("doc_terms"))$("doc_terms").value=get("legal_terms");
-  if($("doc_privacy"))$("doc_privacy").value=get("legal_privacy");
+  if($("doc_terms"))$("doc_terms").innerHTML=get("legal_terms");
+  if($("doc_privacy"))$("doc_privacy").innerHTML=get("legal_privacy");
   pvDoc("terms");pvDoc("privacy");
 }
-async function saveDoc(key,id){const{error}=await sb.rpc("set_config_draft",{p_group:key,p_value:{html:$(id).value}});error?toast(error.message,1):toast("✅ 저장됨 (테스터에게 즉시 반영)");}
+async function saveDoc(key,id){const{error}=await sb.rpc("set_config_draft",{p_group:key,p_value:{html:docHTML($(id))}});error?toast(error.message,1):toast("✅ 저장됨 (테스터에게 즉시 반영)");}
 async function pubDoc(key,label){const{error}=await sb.rpc("publish_config",{p_group:key});error?toast(error.message,1):toast("🚀 "+label+" 배포됨");}
 (function(){const bind=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};
   bind("terms_draft",()=>saveDoc("legal_terms","doc_terms"));
   bind("terms_pub",()=>pubDoc("legal_terms","이용약관"));
   bind("privacy_draft",()=>saveDoc("legal_privacy","doc_privacy"));
   bind("privacy_pub",()=>pubDoc("legal_privacy","개인정보처리방침"));
+  // 굵게 버튼(선택 유지 위해 mousedown 차단) + 편집 시 미리보기 갱신 + 엔터=깔끔한 줄바꿈
+  document.querySelectorAll(".rtbtn").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{document.execCommand(b.dataset.cmd,false,null);pvDoc(b.dataset.t);};});
+  ["terms","privacy"].forEach(t=>{const ed=$("doc_"+t);if(!ed)return;
+    ed.addEventListener("input",()=>pvDoc(t));
+    ed.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.execCommand("insertLineBreak");pvDoc(t);}});
+  });
 })();
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".nav").forEach(x=>x.classList.remove("on"));b.classList.add("on");
@@ -237,16 +437,46 @@ setInterval(()=>{
   const active=[...document.querySelectorAll("section")].find(x=>x.classList.contains("on"));
   if(!active) return;
   if(active.id==="dash") loadDash();
-  else if(active.id==="users" && document.activeElement!==$("u_search")) loadUsers($("u_search").value.trim());
+  else if(active.id==="users" && document.activeElement!==$("u_search") && (typeof SEL==="undefined"||SEL.size===0)) loadUsers($("u_search").value.trim());
 },20000);
 
+let DASH_PERIOD="day";
 async function loadDash(){
-  const {data:ov}=await sb.rpc("admin_overview");
-  if(ov){$("k_users").textContent=(ov.total_users||0).toLocaleString();$("k_new").textContent=ov.new_today||0;$("k_plays").textContent=(ov.plays_today||0).toLocaleString();$("k_coins").textContent=(ov.coins_circulating||0).toLocaleString();}
-  const {data:ts}=await sb.rpc("admin_daily_signups",{p_days:14});
-  if(ts)lineChart($("chSignup"),ts.map(r=>Number(r.cnt)),"#6ee7a0");
+  const {data,error}=await sb.rpc("admin_dashboard",{p_period:DASH_PERIOD,p_points:14});
+  if(error||!data){if($("k_new"))$("k_new").textContent="!";return;}
+  const k=data.kpi||{}, s=data.series||[], per=DASH_PERIOD==="day"?"전일":"전주";
+  const setD=(id,cur,prev)=>{const el=$(id);if(!el)return;const d=(cur||0)-(prev||0);el.textContent=(d>0?"▲ +":d<0?"▼ -":"= ")+Math.abs(d).toLocaleString()+" "+per;el.className="delta "+(d>0?"up":d<0?"down":"");};
+  $("k_new").textContent=(k.new_today||0).toLocaleString(); setD("dl_new",k.new_today,k.new_prev);
+  $("k_dau").textContent=(k.dau_today||0).toLocaleString(); setD("dl_dau",k.dau_today,k.dau_prev);
+  $("k_plays").textContent=(k.plays_today||0).toLocaleString(); setD("dl_plays",k.plays_today,k.plays_prev);
+  $("k_mau").textContent=(k.mau||0).toLocaleString();
+  $("k_stick").textContent=(k.mau?Math.round((k.dau_today||0)/k.mau*100):0)+"%";
+  $("k_users").textContent=(k.total_users||0).toLocaleString();
+  if($("k_coins"))$("k_coins").textContent="🪙"+(k.coins||0).toLocaleString()+" 유통";
+  if($("d_new_lbl"))$("d_new_lbl").textContent=DASH_PERIOD==="day"?"오늘":"이번주";
+  if($("ch_unit"))$("ch_unit").textContent=DASH_PERIOD==="day"?"최근 14일":"최근 14주";
+  const labels=s.map(r=>String(r.bucket).slice(5));
+  drawChart($("chNew"),labels,s.map(r=>r.new_users||0),"#6ee7a0");
+  drawChart($("chPlays"),labels,s.map(r=>r.plays||0),"#63e0ff");
+  drawChart($("chDau"),labels,s.map(r=>r.active||0),"#ffb454");
 }
-function lineChart(cv,data,color){if(!cv||!data.length)return;const x=cv.getContext("2d"),W=cv.width,H=cv.height,p=24;x.clearRect(0,0,W,H);const mx=Math.max(1,...data),mn=Math.min(0,...data);x.strokeStyle="#352c5c";x.lineWidth=1;for(let g=0;g<4;g++){const y=p+(H-2*p)*g/3;x.beginPath();x.moveTo(p,y);x.lineTo(W-p,y);x.stroke();}x.strokeStyle=color;x.lineWidth=2.5;x.beginPath();data.forEach((v,i)=>{const px=p+(W-2*p)*i/(data.length-1||1),py=p+(H-2*p)*(1-(v-mn)/((mx-mn)||1));i?x.lineTo(px,py):x.moveTo(px,py);});x.stroke();}
+let _tipEl;
+function showTip(cx,ty,txt){if(!_tipEl){_tipEl=document.createElement("div");_tipEl.className="chtip";document.body.appendChild(_tipEl);}_tipEl.textContent=txt;_tipEl.style.display="block";_tipEl.style.left=cx+"px";_tipEl.style.top=(ty-6)+"px";}
+function hideTip(){if(_tipEl)_tipEl.style.display="none";}
+function drawChart(cv,labels,data,color){
+  if(!cv||!data.length)return;const x=cv.getContext("2d"),W=cv.width,H=cv.height,p=24;x.clearRect(0,0,W,H);
+  const mx=Math.max(1,...data),mn=Math.min(0,...data);
+  x.strokeStyle="#352c5c";x.lineWidth=1;for(let g=0;g<4;g++){const y=p+(H-2*p)*g/3;x.beginPath();x.moveTo(p,y);x.lineTo(W-p,y);x.stroke();}
+  const pts=data.map((v,i)=>({px:p+(W-2*p)*i/(data.length-1||1),py:p+(H-2*p)*(1-(v-mn)/((mx-mn)||1)),v,l:labels[i]||("#"+i)}));
+  x.strokeStyle=color;x.lineWidth=2.5;x.beginPath();pts.forEach((pt,i)=>{i?x.lineTo(pt.px,pt.py):x.moveTo(pt.px,pt.py);});x.stroke();
+  const e=pts[pts.length-1];x.fillStyle=color;x.beginPath();x.arc(e.px,e.py,3.5,0,7);x.fill();
+  cv._pts=pts;
+  if(!cv._bound){cv._bound=true;
+    const mv=ev=>{const rect=cv.getBoundingClientRect(),sx=cv.width/rect.width,mp=(ev.clientX-rect.left)*sx;let best=null,bd=1e9;(cv._pts||[]).forEach(pt=>{const dd=Math.abs(pt.px-mp);if(dd<bd){bd=dd;best=pt;}});if(best)showTip(ev.clientX,rect.top,best.l+" · "+best.v.toLocaleString());};
+    cv.addEventListener("pointermove",mv);cv.addEventListener("pointerdown",mv);cv.addEventListener("pointerleave",hideTip);
+  }
+}
+document.querySelectorAll(".segbtn").forEach(b=>b.onclick=()=>{document.querySelectorAll(".segbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");DASH_PERIOD=b.dataset.p;loadDash();});
 
 async function loadConfig(){
   const {data,error}=await sb.from("game_config").select("*").order("key");
@@ -275,32 +505,104 @@ const KLBL={notice:"공지",event:"이벤트",update:"업데이트"};
 function updPreview(){$("pv_k").textContent=KLBL[$("a_kind").value];$("pv_t").textContent=$("a_title").value||"제목 미리보기";$("pv_b").textContent=$("a_body").value||"본문이 여기 이렇게 보여요.";}
 ["a_kind","a_title","a_body"].forEach(id=>$(id).addEventListener("input",updPreview));updPreview();
 $("a_post").onclick=async()=>{
-  const {error}=await sb.rpc("admin_post_announcement",{p_title:$("a_title").value.trim(),p_body:$("a_body").value.trim(),p_kind:$("a_kind").value,p_starts:$("a_starts").value||null,p_ends:$("a_ends").value||null});
-  if(error){toast(error.message,1);return;}
-  $("a_title").value="";$("a_body").value="";updPreview();toast("📣 공지 등록됨");loadAnn();
+  const btn=$("a_post"); btn.disabled=true;
+  const {data:id,error}=await sb.rpc("admin_post_announcement",{p_title:$("a_title").value.trim(),p_body:$("a_body").value.trim(),p_kind:$("a_kind").value,p_starts:$("a_starts").value||null,p_ends:$("a_ends").value||null});
+  if(error){toast(error.message,1);btn.disabled=false;return;}
+  const f=$("a_image")&&$("a_image").files[0];
+  if(f&&id){ toast("이미지 업로드 중…");
+    const ext=(f.name.split(".").pop()||"png").toLowerCase().replace(/[^a-z0-9]/g,"")||"png";
+    const path="ann_"+id+"_"+(f.size)+"."+ext;
+    const up=await sb.storage.from("announce").upload(path,f,{upsert:true,contentType:f.type});
+    if(up.error){ toast("이미지 실패: "+up.error.message,1); }
+    else { const {data:pub}=sb.storage.from("announce").getPublicUrl(path); await sb.rpc("admin_set_announcement_image",{p_id:id,p_url:pub.publicUrl}); }
+  }
+  $("a_title").value="";$("a_body").value="";if($("a_image"))$("a_image").value="";updPreview();toast("📣 공지 등록됨");loadAnn();btn.disabled=false;
 };
 async function loadAnn(){
   const {data}=await sb.rpc("admin_list_announcements");
   const el=$("annList");if(!data){el.textContent="없음";return;}
-  el.innerHTML=data.map(a=>"<div class='cfgrow'><label style='width:auto;flex:1'>["+KLBL[a.kind]+"] "+a.title+(a.active?"":" <span style='color:var(--faint)'>(내림)</span>")+"</label><button class='btn gh sm' data-id='"+a.id+"' data-on='"+(!a.active)+"'>"+(a.active?"내리기":"올리기")+"</button></div>").join("")||"없음";
+  el.innerHTML=data.map(a=>{const dt=String(a.created_at||"").slice(0,10),sc=a.starts_at?(" · 예약 "+String(a.starts_at).slice(0,10)):"",tg=a.kind==='event'?'t':a.kind==='update'?'a':'u';
+    const thumb=a.image_url?("<img src='"+a.image_url+"' style='width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none'>"):"";
+    return "<div class='cfgrow' style='align-items:center;gap:9px'>"+thumb+"<label style='width:auto;flex:1'><span class='tag "+tg+"'>"+KLBL[a.kind]+"</span> <b style='color:var(--ink)'>"+a.title+"</b><br><span style='font-size:10px;color:var(--faint)'>"+dt+sc+(a.active?"":" · 내림 상태")+"</span></label><button class='btn gh sm' data-id='"+a.id+"' data-on='"+(!a.active)+"'>"+(a.active?"내리기":"올리기")+"</button></div>";}).join("")||"없음";
   el.querySelectorAll("[data-id]").forEach(b=>b.onclick=async()=>{const{error}=await sb.rpc("admin_set_announcement",{p_id:Number(b.dataset.id),p_active:b.dataset.on==="true"});error?toast(error.message,1):(toast("변경됨"),loadAnn());});
 }
 
+const UTOT={char:16,plat:10,acc:20,egg:14,badge:15,set:17};
+let USERS=[], SEL=new Set();
 $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.target.value.trim());});
+if($("u_sort"))$("u_sort").onchange=()=>loadUsers($("u_search").value.trim());
+function ufmt(n){return Number(n||0).toLocaleString();}
 async function loadUsers(q){
-  const {data,error}=await sb.rpc("admin_list_users",{p_search:q||"",p_limit:50});
+  const sort=$("u_sort")?$("u_sort").value:"recent";
+  const {data,error}=await sb.rpc("admin_user_stats",{p_search:q||"",p_limit:100,p_sort:sort});
   const t=$("userTbl");
-  if(error){t.innerHTML="<tr><td>"+error.message+"</td></tr>";return;}
-  let h="<tr><th>닉네임</th><th>코인</th><th>역할</th><th>세그먼트</th><th>액션</th></tr>";
-  (data||[]).forEach(u=>{const tag=u.role==="admin"?"a":u.role==="tester"?"t":"u";
-    h+="<tr><td>"+u.nickname+"</td><td>"+(u.coins||0).toLocaleString()+"</td><td><span class='tag "+tag+"'>"+u.role+"</span></td><td>"+((u.segments||[]).map(s=>"<span class='seg'>"+s+"</span>").join("")||"—")+"</td><td><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button> <button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button> <button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button></td></tr>";});
+  if(error){t.innerHTML="<tr><td style='color:var(--red)'>"+error.message+"</td></tr>";return;}
+  USERS=data||[]; renderUsers();
+}
+function renderUsers(){
+  const t=$("userTbl");
+  let h="<tr><th></th><th>유저</th><th>잔여🪙</th><th>획득 / 사용</th><th>플레이</th><th>역할</th><th></th></tr>";
+  USERS.forEach(u=>{const tag=u.role==="admin"?"a":u.role==="tester"?"t":"u";
+    h+="<tr class='urow-main' data-id='"+u.id+"'>"+
+      "<td><input type='checkbox' class='usel' data-id='"+u.id+"'"+(SEL.has(u.id)?" checked":"")+"></td>"+
+      "<td><b>"+(u.nickname||"—")+"</b><br><small style='color:var(--faint);font-size:10px'>"+(u.email||"")+"</small></td>"+
+      "<td>"+ufmt(u.coins)+"</td>"+
+      "<td><span style='color:var(--green)'>+"+ufmt(u.earned)+"</span> / <span style='color:var(--red)'>-"+ufmt(u.spent)+"</span></td>"+
+      "<td>"+ufmt(u.plays)+"</td>"+
+      "<td><span class='tag "+tag+"'>"+u.role+"</span></td>"+
+      "<td><button class='btn gh sm' data-det='"+u.id+"'>상세</button></td></tr>"+
+      "<tr class='urow-det' id='det_"+u.id+"' style='display:none'><td colspan='7'>"+udetail(u)+"</td></tr>";
+  });
   t.innerHTML=h;
+  t.querySelectorAll(".usel").forEach(c=>c.onchange=()=>{c.checked?SEL.add(c.dataset.id):SEL.delete(c.dataset.id);updBulk();});
+  t.querySelectorAll("[data-det]").forEach(b=>b.onclick=()=>{const r=$("det_"+b.dataset.det);r.style.display=r.style.display==="none"?"table-row":"none";});
   t.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>userAction(b.dataset.a,b.dataset.id));
+  updBulk();
+}
+function udetail(u){
+  const m=(n,tot)=>ufmt(n)+" <small style='color:var(--faint);font-weight:600'>/ "+tot+"</small>";
+  const d=x=>x?String(x).slice(0,10):"—";
+  return "<div class='udet'>"+
+    "<div><label>캐릭터</label>"+m(u.chars,UTOT.char)+"</div>"+
+    "<div><label>발판</label>"+m(u.plats,UTOT.plat)+"</div>"+
+    "<div><label>악세</label>"+m(u.accs,UTOT.acc)+"</div>"+
+    "<div><label>에그</label>"+m(u.eggs,UTOT.egg)+"</div>"+
+    "<div><label>뱃지</label>"+m(u.badges,UTOT.badge)+"</div>"+
+    "<div><label>세트</label>"+m(u.sets,UTOT.set)+"</div>"+
+    "<div><label>가챠</label>"+ufmt(u.gacha)+"회</div>"+
+    "<div><label>결제금액</label><small style='color:var(--faint)'>수익화 후</small></div>"+
+    "<div><label>리워드시청</label><small style='color:var(--faint)'>수익화 후</small></div>"+
+    "<div><label>세그먼트</label>"+((u.segments||[]).join(", ")||"—")+"</div>"+
+    "<div><label>가입</label>"+d(u.created_at)+"</div>"+
+    "<div><label>최근활동</label>"+d(u.last_at)+"</div>"+
+    "</div>"+
+    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button></div>";
+}
+function updBulk(){const bar=$("bulkbar");if(!bar)return;if(SEL.size>0){bar.style.display="flex";$("bulkcount").textContent=SEL.size+"명 선택";}else bar.style.display="none";}
+if($("bulk_clear"))$("bulk_clear").onclick=()=>{SEL.clear();renderUsers();};
+if($("bulk_coin"))$("bulk_coin").onclick=()=>bulkApply("coin");
+if($("bulk_role"))$("bulk_role").onclick=()=>bulkApply("role");
+if($("bulk_seg"))$("bulk_seg").onclick=()=>bulkApply("seg");
+async function bulkApply(kind){
+  const ids=[...SEL]; if(!ids.length)return;
+  let param;
+  if(kind==="coin"){const n=prompt(ids.length+"명에게 지급할 코인 (음수=차감)");if(n===null)return;param=Number(n);}
+  else if(kind==="role"){const r=prompt("역할: user / tester / admin");if(!r)return;param=r;}
+  else if(kind==="seg"){const s=prompt("추가할 세그먼트 (예: promo1)");if(!s)return;param=s;}
+  let ok=0,err=0;
+  for(const id of ids){let e;
+    if(kind==="coin")({error:e}=await sb.rpc("admin_grant_coins",{p_target:id,p_amount:param,p_reason:"🛠 어드민 일괄지급"}));
+    else if(kind==="role")({error:e}=await sb.rpc("admin_set_role",{p_target:id,p_role:param}));
+    else if(kind==="seg")({error:e}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:param,p_add:true}));
+    e?err++:ok++;
+  }
+  toast("일괄 완료 · 성공 "+ok+(err?" · 실패 "+err:""),err?1:0);
+  SEL.clear(); loadUsers($("u_search").value.trim());
 }
 async function userAction(act,id){let error;
   if(act==="coin"){const n=prompt("지급할 코인 (음수=차감)");if(n===null)return;({error}=await sb.rpc("admin_grant_coins",{p_target:id,p_amount:Number(n),p_reason:"🛠 어드민 지급"}));}
   else if(act==="role"){const r=prompt("역할: user / tester / admin");if(!r)return;({error}=await sb.rpc("admin_set_role",{p_target:id,p_role:r}));}
-  else if(act==="seg"){const s=prompt("세그먼트 추가 (예: promo1). 여러 개면 하나씩 반복");if(!s)return;({error}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:s,p_add:true}));}
+  else if(act==="seg"){const s=prompt("세그먼트 추가 (예: promo1)");if(!s)return;({error}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:s,p_add:true}));}
   error?toast(error.message,1):(toast("완료"),loadUsers($("u_search").value.trim()));
 }
 </script>
