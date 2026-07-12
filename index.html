@@ -103,6 +103,7 @@
     <button class="nav" data-s="econ"><span class="ic">⚙️</span>이코노미</button>
     <button class="nav" data-s="ann"><span class="ic">📣</span>공지</button>
     <button class="nav" data-s="users"><span class="ic">👥</span>유저</button>
+    <button class="nav" data-s="legal"><span class="ic">📄</span>약관</button>
     <div class="navfoot"><span id="whoami"></span><br><button class="btn gh sm" id="logout1" style="margin-top:8px">로그아웃</button></div>
   </nav>
   <main class="main">
@@ -143,6 +144,20 @@
         <p style="font-size:11px;color:var(--faint);margin-top:8px">테스터는 랭킹·통계 제외 · 세그먼트로 프로모션 타겟팅</p>
       </div>
     </section>
+    <section id="legal">
+      <div class="panel">
+        <h3>📄 서비스 이용약관 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <textarea class="in" id="doc_terms" rows="12" style="width:100%;resize:vertical;font-size:12px;line-height:1.55"></textarea>
+        <p style="font-size:11px;color:var(--faint);margin:6px 0">줄바꿈은 &lt;br&gt;, 강조는 &lt;b&gt;…&lt;/b&gt; 사용. 테스터는 즉시 draft를 봄. 전체 공개는 '배포하기'.</p>
+        <div class="btns"><button class="btn test" id="terms_draft">테스트 적용</button><button class="btn pub" id="terms_pub">배포하기</button></div>
+      </div>
+      <div class="panel">
+        <h3>🔒 개인정보처리방침 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <textarea class="in" id="doc_privacy" rows="12" style="width:100%;resize:vertical;font-size:12px;line-height:1.55"></textarea>
+        <p style="font-size:11px;color:var(--faint);margin:6px 0">줄바꿈은 &lt;br&gt;, 강조는 &lt;b&gt;…&lt;/b&gt; 사용.</p>
+        <div class="btns"><button class="btn test" id="privacy_draft">테스트 적용</button><button class="btn pub" id="privacy_pub">배포하기</button></div>
+      </div>
+    </section>
   </main>
 </div>
 <div class="toast" id="toast"></div>
@@ -170,10 +185,25 @@ async function enter(){
   const {data:{user}}=await sb.auth.getUser();
   $("whoami").textContent="👤 "+(user?.email||"admin");
   $("app").hidden=false;
-  loadDash();loadConfig();loadAnn();loadUsers("");
+  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();
 }
 
-const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리"};
+const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",legal:"약관·개인정보"};
+async function loadLegal(){
+  const {data}=await sb.from("game_config").select("key,value,value_draft").in("key",["legal_terms","legal_privacy"]);
+  const map={};(data||[]).forEach(r=>map[r.key]=r);
+  const get=k=>{const r=map[k];if(!r)return "";const d=r.value_draft&&r.value_draft.html,l=r.value&&r.value.html;return (d!=null?d:(l||""));};
+  if($("doc_terms"))$("doc_terms").value=get("legal_terms");
+  if($("doc_privacy"))$("doc_privacy").value=get("legal_privacy");
+}
+async function saveDoc(key,id){const{error}=await sb.rpc("set_config_draft",{p_group:key,p_value:{html:$(id).value}});error?toast(error.message,1):toast("✅ 저장됨 (테스터에게 즉시 반영)");}
+async function pubDoc(key,label){const{error}=await sb.rpc("publish_config",{p_group:key});error?toast(error.message,1):toast("🚀 "+label+" 배포됨");}
+(function(){const bind=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};
+  bind("terms_draft",()=>saveDoc("legal_terms","doc_terms"));
+  bind("terms_pub",()=>pubDoc("legal_terms","이용약관"));
+  bind("privacy_draft",()=>saveDoc("legal_privacy","doc_privacy"));
+  bind("privacy_pub",()=>pubDoc("legal_privacy","개인정보처리방침"));
+})();
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".nav").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   const s=b.dataset.s;document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id===s));
