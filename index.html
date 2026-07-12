@@ -68,6 +68,10 @@
   .minirow .mg-info{flex:1;min-width:0}.minirow .mg-info b{font-size:13px}.minirow .mg-info span{display:block;font-size:11px;color:var(--dim);line-height:1.4}
   .minirow .mg-w{flex:none;text-align:right}.minirow .mg-w label{display:block;font-size:9px;color:var(--faint);margin-bottom:2px}
   .minirow .mg-w input{width:64px;padding:6px 8px;text-align:center}
+  .catrow{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .catrow .cn{flex:1;min-width:80px;font-size:12.5px;font-weight:700}
+  .catrow select,.catrow input[type=date]{padding:5px 7px;font-size:12px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px}
+  .catrow .ca{display:flex;align-items:center;gap:3px;font-size:11px;color:var(--dim)}
   .rtbar{display:flex;gap:6px;margin-bottom:6px}
   .rtbtn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}
   .rtbtn:active{background:var(--line)}
@@ -223,6 +227,13 @@
         <div class="btns"><button class="btn test" id="shop_draft">테스트 적용</button><button class="btn pub" id="shop_pub">배포하기</button></div>
         <p style="font-size:11px;color:var(--faint);margin-top:8px">⚠️ 효과(능력치)·새 아이템·아트는 앱 업데이트 필요(그림=클라 코드). 여기선 가격·활성만.</p>
       </div>
+      <div class="panel">
+        <h3>🎨 코스메틱 카탈로그 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <p style="font-size:11px;color:var(--faint);margin:0 0 4px">펫·발판·악세 전체. <b>등급·노출·해제 예정일</b> 설정. 노출 끄면 상점/뽑기에서 숨김(보유자는 유지). 해제일 지정 시 그날부터 등장.</p>
+        <p style="font-size:11px;color:var(--faint);margin:0 0 8px">※ 그림은 앱 코드라 여기선 이모지/색상으로 표시. <b>새 아이템·아트는 앱 업데이트</b> 필요.</p>
+        <div id="catRows" style="max-height:60vh;overflow:auto"></div>
+        <div class="btns"><button class="btn test" id="cat_draft">테스트 적용</button><button class="btn pub" id="cat_pub">배포하기</button></div>
+      </div>
     </section>
     <section id="mini">
       <div class="panel">
@@ -289,7 +300,7 @@ async function enter(){
   const {data:{user}}=await sb.auth.getUser();
   $("whoami").textContent="👤 "+(user?.email||"admin");
   $("app").hidden=false;
-  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();
+  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();
 }
 
 const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",terms:"이용약관",privacy:"개인정보처리방침"};
@@ -331,6 +342,38 @@ async function saveShop(pub){
   else toast("✅ 저장됨 (테스터 즉시 반영)");
 }
 (function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("shop_draft",()=>saveShop(false));b("shop_pub",()=>saveShop(true));})();
+const CATALOG=[
+  {"id":"chick","name":"삐약이","type":"character","r":"common","em":null,"body":"#ffd23e"},{"id":"rabbit","name":"토끼","type":"character","r":"common","em":null,"body":"#f2ecf4"},{"id":"frog","name":"개굴","type":"character","r":"rare","em":null,"body":"#6ee7a0"},{"id":"cat","name":"냥이","type":"character","r":"rare","em":null,"body":"#c9c4dd"},{"id":"dog","name":"멍멍","type":"character","r":"rare","em":null,"body":"#d8a86a"},{"id":"bear","name":"곰곰","type":"character","r":"rare","em":null,"body":"#b98a5a"},{"id":"penguin","name":"뒤뚱","type":"character","r":"rare","em":null,"body":"#3a4152"},{"id":"kid","name":"모험가","type":"character","r":"rare","em":null,"body":"#5aa9ff"},{"id":"robot","name":"삐뽀","type":"character","r":"epic","em":null,"body":"#b8c0d8"},{"id":"panda","name":"판다","type":"character","r":"epic","em":null,"body":"#f4f4fa"},{"id":"fox","name":"여우","type":"character","r":"epic","em":null,"body":"#ff9a52"},{"id":"ghost","name":"부끄","type":"character","r":"epic","em":null,"body":"#eef0ff"},{"id":"dino","name":"뿔룡","type":"character","r":"legend","em":null,"body":"#7fd06a"},{"id":"phantom","name":"밤도깨비","type":"character","r":"legend","em":null,"body":"#7a5be0","secret":true},{"id":"drake","name":"아기용","type":"character","r":"legend","em":null,"body":"#ff6f4a","secret":true},{"id":"unicorn","name":"유니콘","type":"character","r":"legend","em":null,"body":"#ffc6e6","secret":true},
+  {"id":"stone","name":"돌다리","type":"platform","r":"common"},{"id":"wood","name":"나무판","type":"platform","r":"common"},{"id":"leaf","name":"나뭇잎","type":"platform","r":"common"},{"id":"cloud","name":"구름","type":"platform","r":"rare"},{"id":"lily","name":"연꽃잎","type":"platform","r":"rare"},{"id":"mushroom","name":"버섯","type":"platform","r":"rare"},{"id":"candy","name":"사탕","type":"platform","r":"epic"},{"id":"jelly","name":"젤리","type":"platform","r":"epic"},{"id":"glass","name":"유리","type":"platform","r":"epic"},{"id":"gold","name":"황금","type":"platform","r":"legend"},
+  {"id":"ribbon","name":"리본","type":"accessory","r":"common","em":"🎀"},{"id":"flower","name":"꽃","type":"accessory","r":"common","em":"🌸"},{"id":"glasses","name":"동그란안경","type":"accessory","r":"common","em":"👓"},{"id":"cap","name":"야구모자","type":"accessory","r":"rare","em":"🧢"},{"id":"partyhat","name":"고깔","type":"accessory","r":"rare","em":"🎉"},{"id":"headphones","name":"헤드폰","type":"accessory","r":"rare","em":"🎧"},{"id":"strawhat","name":"밀짚모자","type":"accessory","r":"rare","em":"👒"},{"id":"horns","name":"뿔","type":"accessory","r":"epic","em":"😈"},{"id":"shades","name":"선글라스","type":"accessory","r":"epic","em":"🕶️"},{"id":"halo","name":"후광","type":"accessory","r":"epic","em":"😇"},{"id":"balloon","name":"풍선","type":"accessory","r":"rare","em":"🎈"},{"id":"lollipop","name":"막대사탕","type":"accessory","r":"rare","em":"🍭"},{"id":"umbrella","name":"우산","type":"accessory","r":"rare","em":"🌂"},{"id":"wand","name":"요술봉","type":"accessory","r":"epic","em":"🪄"},{"id":"tinkerbell","name":"팅커벨","type":"accessory","r":"epic","em":"🧚"},{"id":"net","name":"잠자리채","type":"accessory","r":"rare","em":"🥅"},{"id":"flyswatter","name":"파리채","type":"accessory","r":"rare","em":"🪰"},{"id":"fishingrod","name":"낚싯대","type":"accessory","r":"epic","em":"🎣"},{"id":"crown","name":"왕관","type":"accessory","r":"legend","em":"👑"}
+];
+let CAT_CFG={cosmetics:{}};
+async function loadCatalog(){
+  const {data}=await sb.from("game_config").select("value,value_draft").eq("key","catalog").maybeSingle();
+  CAT_CFG=(data&&(data.value_draft||data.value))||{cosmetics:{}}; if(!CAT_CFG.cosmetics)CAT_CFG.cosmetics={};
+  renderCatalog();
+}
+function catVis(it){ if(it.em)return "<span style='font-size:17px;width:22px;text-align:center'>"+it.em+"</span>"; if(it.body)return "<span style='display:inline-block;width:16px;height:16px;border-radius:50%;background:"+it.body+";border:1px solid #0006'></span>"; return "<span style='display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--line)'></span>"; }
+function renderCatalog(){
+  const wrap=$("catRows");if(!wrap)return;const RL={common:"일반",rare:"레어",epic:"에픽",legend:"전설"};
+  const groups={character:"🐾 펫",platform:"🟫 발판",accessory:"🎀 악세"};let h="";
+  Object.keys(groups).forEach(tp=>{ h+="<div style='font-size:11px;color:var(--faint);margin:12px 0 4px;font-weight:800'>"+groups[tp]+"</div>";
+    CATALOG.filter(it=>it.type===tp).forEach(it=>{const o=(CAT_CFG.cosmetics||{})[it.id]||{};const rar=o.rarity||it.r,act=(o.active!==false),rel=o.releaseAt?String(o.releaseAt).slice(0,10):"";
+      const rsel=["common","rare","epic","legend"].map(r=>"<option value='"+r+"'"+(r===rar?" selected":"")+">"+RL[r]+"</option>").join("");
+      h+="<div class='catrow'>"+catVis(it)+"<span class='cn'>"+it.name+(it.secret?" 🔒":"")+"</span><select class='cr' data-id='"+it.id+"'>"+rsel+"</select><label class='ca'><input type='checkbox' class='cact' data-id='"+it.id+"'"+(act?" checked":"")+"> 노출</label><input type='date' class='crel' data-id='"+it.id+"' value='"+rel+"' title='해제 예정일(비우면 즉시)'></div>";
+    });});
+  wrap.innerHTML=h;
+}
+async function saveCatalog(pub){
+  const cosmetics={};
+  CATALOG.forEach(it=>{const rar=(document.querySelector(".cr[data-id='"+it.id+"']")||{}).value||it.r;const act=!!(document.querySelector(".cact[data-id='"+it.id+"']")||{}).checked;const rel=(document.querySelector(".crel[data-id='"+it.id+"']")||{}).value||"";
+    if(rar!==it.r||!act||rel){cosmetics[it.id]={rarity:rar,active:act};if(rel)cosmetics[it.id].releaseAt=rel;}});
+  let {error}=await sb.rpc("set_config_draft",{p_group:"catalog",p_value:{cosmetics}});
+  if(error){toast(error.message,1);return;}
+  if(pub){({error}=await sb.rpc("publish_config",{p_group:"catalog"}));if(error){toast(error.message,1);return;}toast("🚀 카탈로그 배포됨");}
+  else toast("✅ 저장됨 (테스터 즉시 반영)");
+}
+(function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("cat_draft",()=>saveCatalog(false));b("cat_pub",()=>saveCatalog(true));})();
 function renderGacha(){
   const wrap=$("gachaRows");if(!wrap)return;
   wrap.innerHTML=RMETA.map(r=>{const w=(GACHA_CFG[r.id]!=null?GACHA_CFG[r.id]:0);
