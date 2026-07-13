@@ -50,6 +50,12 @@
   .segbtn{background:transparent;border:none;color:var(--dim);padding:7px 15px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
   .segbtn.on{background:var(--violet);color:#1a1330}
   .chtip{position:fixed;transform:translate(-50%,-100%);background:#000;color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;pointer-events:none;z-index:9999;white-space:nowrap;display:none}
+  .metricrow{display:flex;gap:12px;align-items:stretch;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+  .metricrow .mbox{flex:none;width:150px;display:flex;flex-direction:column;justify-content:center}
+  .metricrow .mbox .ml{font-size:11px;color:var(--dim)} .metricrow .mbox .mv{font-size:27px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+  .metricrow .mbox .msub{font-size:10.5px;color:var(--faint);margin-top:4px;line-height:1.4}
+  .metricrow canvas{flex:1;min-width:0;height:120px}
+  @media(max-width:640px){.metricrow{flex-direction:column}.metricrow .mbox{width:auto}}
   canvas{max-width:100%;height:auto}
   canvas{width:100%;height:auto;display:block}
   .cfgrow{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}.cfgrow:last-child{border:none}
@@ -81,6 +87,10 @@
   @media(max-width:820px){.legalgrid{grid-template-columns:1fr}}
   .pvlabel{font-size:11px;color:var(--faint);margin-bottom:6px}
   .docpreview{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;font-size:12.5px;line-height:1.68;color:var(--ink);max-height:560px;overflow:auto}
+  .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:18px}
+  .modal[hidden]{display:none}
+  .modalcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;max-width:540px;width:100%;max-height:88vh;overflow:auto}
+  .modalcard .mtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .docpreview b{color:var(--gold2)}
   code{background:var(--panel2);padding:1px 5px;border-radius:4px;color:var(--gold2)}
   table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px 9px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -138,8 +148,7 @@
     <button class="nav" data-s="users"><span class="ic">👥</span>유저</button>
     <button class="nav" data-s="shop"><span class="ic">🛒</span>상점</button>
     <button class="nav" data-s="mini"><span class="ic">🎮</span>미니게임</button>
-    <button class="nav" data-s="terms"><span class="ic">📄</span>약관</button>
-    <button class="nav" data-s="privacy"><span class="ic">🔒</span>개인정보</button>
+    <button class="nav" data-s="legal"><span class="ic">⚖️</span>법률</button>
     <div class="navfoot"><span id="whoami"></span><br><button class="btn gh sm" id="logout1" style="margin-top:8px">로그아웃</button></div>
   </nav>
   <main class="main">
@@ -148,21 +157,15 @@
     <section id="dash" class="on">
       <div class="urow" style="justify-content:space-between;align-items:center">
         <div class="seg-toggle"><button class="segbtn on" data-p="day">일별</button><button class="segbtn" data-p="week">주별</button></div>
-        <span style="font-size:11px;color:var(--faint)">운영진 제외 · 활성=플레이 기준</span>
+        <span style="font-size:11px;color:var(--faint)">운영진 제외 · 활성=플레이 기준 · <span id="dash_range">최근 7일</span></span>
       </div>
-      <div class="kpis">
-        <div class="kpi"><div class="l">신규 <span id="d_new_lbl">오늘</span></div><div class="v" id="k_new">-</div><div class="delta" id="dl_new"></div></div>
-        <div class="kpi"><div class="l">활성 (DAU)</div><div class="v" id="k_dau">-</div><div class="delta" id="dl_dau"></div></div>
-        <div class="kpi"><div class="l">플레이</div><div class="v" id="k_plays">-</div><div class="delta" id="dl_plays"></div></div>
-        <div class="kpi"><div class="l">MAU</div><div class="v" id="k_mau">-</div><div class="delta" style="color:var(--faint)">최근 30일</div></div>
-        <div class="kpi"><div class="l">Stickiness</div><div class="v" id="k_stick">-</div><div class="delta" style="color:var(--faint)">DAU/MAU</div></div>
-        <div class="kpi"><div class="l">총 유저 / 코인유통</div><div class="v" id="k_users">-</div><div class="delta" id="k_coins" style="color:var(--faint)"></div></div>
-        <div class="kpi muted"><div class="l">리워드 시청</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
-        <div class="kpi muted"><div class="l">결제 (건/액)</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
+      <div id="metricRows"></div>
+      <div class="kpis" style="margin-top:6px">
+        <div class="kpi"><div class="l">Stickiness</div><div class="v" id="k_stick">-</div><div class="delta" id="k_stick_lbl" style="color:var(--faint)">DAU/MAU</div></div>
+        <div class="kpi"><div class="l">MAU</div><div class="v" id="k_mau">-</div><div class="delta" style="color:var(--faint)">최근 30일 활성</div></div>
+        <div class="kpi muted"><div class="l">리워드 시청 (유저당)</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
+        <div class="kpi muted"><div class="l">결제 건·액 (유저당)</div><div class="v">—</div><div class="delta" style="color:var(--faint)">수익화 후</div></div>
       </div>
-      <div class="panel"><h3>신규 가입 <span id="ch_unit" style="font-size:11px;color:var(--faint)">최근 14일</span></h3><canvas id="chNew" width="700" height="170"></canvas></div>
-      <div class="panel"><h3>플레이수</h3><canvas id="chPlays" width="700" height="170"></canvas></div>
-      <div class="panel"><h3>활성 유저 (DAU)</h3><canvas id="chDau" width="700" height="170"></canvas></div>
     </section>
 
     <section id="econ"><div id="cfgWrap"></div></section>
@@ -245,36 +248,25 @@
         <div class="btns"><button class="btn test" id="mini_draft">테스트 적용</button><button class="btn pub" id="mini_pub">배포하기</button></div>
       </div>
     </section>
-    <section id="terms">
+    <section id="legal">
       <div class="panel">
         <h3>📄 서비스 이용약관 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
-        <div class="legalgrid">
-          <div>
-            <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="terms"><b>B</b> 굵게</button></div>
-            <div class="rtedit" id="doc_terms" contenteditable="true"></div>
-            <p style="font-size:11px;color:var(--faint);margin:6px 0">그냥 <b>엔터로 줄바꿈</b>, 글자 선택 후 <b>'굵게'</b> 버튼. HTML 몰라도 돼요. 테스터는 즉시 draft, 전체 공개는 '배포하기'.</p>
-            <div class="btns"><button class="btn test" id="terms_draft">테스트 적용</button><button class="btn pub" id="terms_pub">배포하기</button></div>
-          </div>
-          <div><div class="pvlabel">🔎 미리보기 (인게임 표시 그대로)</div><div class="docpreview" id="pv_terms"></div></div>
-        </div>
+        <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="terms"><b>B</b> 굵게</button></div>
+        <div class="rtedit" id="doc_terms" contenteditable="true"></div>
+        <p style="font-size:11px;color:var(--faint);margin:6px 0">엔터=줄바꿈, 글자 선택 후 굵게 버튼. HTML 몰라도 돼요.</p>
+        <div class="btns"><button class="btn gh" id="terms_preview">🔎 미리보기</button><button class="btn test" id="terms_draft">테스트 적용</button><button class="btn pub" id="terms_pub">배포하기</button></div>
       </div>
-    </section>
-    <section id="privacy">
       <div class="panel">
         <h3>🔒 개인정보처리방침 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
-        <div class="legalgrid">
-          <div>
-            <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="privacy"><b>B</b> 굵게</button></div>
-            <div class="rtedit" id="doc_privacy" contenteditable="true"></div>
-            <p style="font-size:11px;color:var(--faint);margin:6px 0">그냥 <b>엔터로 줄바꿈</b>, 글자 선택 후 <b>'굵게'</b> 버튼. HTML 몰라도 돼요.</p>
-            <div class="btns"><button class="btn test" id="privacy_draft">테스트 적용</button><button class="btn pub" id="privacy_pub">배포하기</button></div>
-          </div>
-          <div><div class="pvlabel">🔎 미리보기 (인게임 표시 그대로)</div><div class="docpreview" id="pv_privacy"></div></div>
-        </div>
+        <div class="rtbar"><button type="button" class="rtbtn" data-cmd="bold" data-t="privacy"><b>B</b> 굵게</button></div>
+        <div class="rtedit" id="doc_privacy" contenteditable="true"></div>
+        <p style="font-size:11px;color:var(--faint);margin:6px 0">엔터=줄바꿈, 글자 선택 후 굵게 버튼.</p>
+        <div class="btns"><button class="btn gh" id="privacy_preview">🔎 미리보기</button><button class="btn test" id="privacy_draft">테스트 적용</button><button class="btn pub" id="privacy_pub">배포하기</button></div>
       </div>
     </section>
   </main>
 </div>
+<div id="docPvOv" class="modal" hidden><div class="modalcard"><div class="mtop"><h3 id="docPvTitle">미리보기</h3><button class="btn gh sm" id="docPvClose">닫기</button></div><div class="docpreview" id="docPvBody" style="max-height:70vh"></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -303,9 +295,9 @@ async function enter(){
   loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();
 }
 
-const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",terms:"이용약관",privacy:"개인정보처리방침"};
+const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",legal:"법률 (약관·개인정보)"};
 // 갓챠: 게임과 동일하게 등급별 아이템수×가중치로 확률 계산(비밀 캐릭 제외 대표값)
-const GPOOL={common:8,rare:18,epic:13,legend:3};
+const GPOOL={common:8,rare:19,epic:15,legend:7};
 const RMETA=[{id:"common",name:"일반",col:"#a99ed6"},{id:"rare",name:"레어",col:"#63e0ff"},{id:"epic",name:"에픽",col:"#b98cff"},{id:"legend",name:"전설",col:"#ffd23e"}];
 let GACHA_CFG={common:60,rare:25,epic:12,legend:3};
 const SHOP_ITEMS=[
@@ -343,9 +335,9 @@ async function saveShop(pub){
 }
 (function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("shop_draft",()=>saveShop(false));b("shop_pub",()=>saveShop(true));})();
 const CATALOG=[
-  {"id":"chick","name":"삐약이","type":"character","r":"common","em":null,"body":"#ffd23e"},{"id":"rabbit","name":"토끼","type":"character","r":"common","em":null,"body":"#f2ecf4"},{"id":"frog","name":"개굴","type":"character","r":"rare","em":null,"body":"#6ee7a0"},{"id":"cat","name":"냥이","type":"character","r":"rare","em":null,"body":"#c9c4dd"},{"id":"dog","name":"멍멍","type":"character","r":"rare","em":null,"body":"#d8a86a"},{"id":"bear","name":"곰곰","type":"character","r":"rare","em":null,"body":"#b98a5a"},{"id":"penguin","name":"뒤뚱","type":"character","r":"rare","em":null,"body":"#3a4152"},{"id":"kid","name":"모험가","type":"character","r":"rare","em":null,"body":"#5aa9ff"},{"id":"robot","name":"삐뽀","type":"character","r":"epic","em":null,"body":"#b8c0d8"},{"id":"panda","name":"판다","type":"character","r":"epic","em":null,"body":"#f4f4fa"},{"id":"fox","name":"여우","type":"character","r":"epic","em":null,"body":"#ff9a52"},{"id":"ghost","name":"부끄","type":"character","r":"epic","em":null,"body":"#eef0ff"},{"id":"dino","name":"뿔룡","type":"character","r":"legend","em":null,"body":"#7fd06a"},{"id":"phantom","name":"밤도깨비","type":"character","r":"legend","em":null,"body":"#7a5be0","secret":true},{"id":"drake","name":"아기용","type":"character","r":"legend","em":null,"body":"#ff6f4a","secret":true},{"id":"unicorn","name":"유니콘","type":"character","r":"legend","em":null,"body":"#ffc6e6","secret":true},
-  {"id":"stone","name":"돌다리","type":"platform","r":"common"},{"id":"wood","name":"나무판","type":"platform","r":"common"},{"id":"leaf","name":"나뭇잎","type":"platform","r":"common"},{"id":"cloud","name":"구름","type":"platform","r":"rare"},{"id":"lily","name":"연꽃잎","type":"platform","r":"rare"},{"id":"mushroom","name":"버섯","type":"platform","r":"rare"},{"id":"candy","name":"사탕","type":"platform","r":"epic"},{"id":"jelly","name":"젤리","type":"platform","r":"epic"},{"id":"glass","name":"유리","type":"platform","r":"epic"},{"id":"gold","name":"황금","type":"platform","r":"legend"},
-  {"id":"ribbon","name":"리본","type":"accessory","r":"common","em":"🎀"},{"id":"flower","name":"꽃","type":"accessory","r":"common","em":"🌸"},{"id":"glasses","name":"동그란안경","type":"accessory","r":"common","em":"👓"},{"id":"cap","name":"야구모자","type":"accessory","r":"rare","em":"🧢"},{"id":"partyhat","name":"고깔","type":"accessory","r":"rare","em":"🎉"},{"id":"headphones","name":"헤드폰","type":"accessory","r":"rare","em":"🎧"},{"id":"strawhat","name":"밀짚모자","type":"accessory","r":"rare","em":"👒"},{"id":"horns","name":"뿔","type":"accessory","r":"epic","em":"😈"},{"id":"shades","name":"선글라스","type":"accessory","r":"epic","em":"🕶️"},{"id":"halo","name":"후광","type":"accessory","r":"epic","em":"😇"},{"id":"balloon","name":"풍선","type":"accessory","r":"rare","em":"🎈"},{"id":"lollipop","name":"막대사탕","type":"accessory","r":"rare","em":"🍭"},{"id":"umbrella","name":"우산","type":"accessory","r":"rare","em":"🌂"},{"id":"wand","name":"요술봉","type":"accessory","r":"epic","em":"🪄"},{"id":"tinkerbell","name":"팅커벨","type":"accessory","r":"epic","em":"🧚"},{"id":"net","name":"잠자리채","type":"accessory","r":"rare","em":"🥅"},{"id":"flyswatter","name":"파리채","type":"accessory","r":"rare","em":"🪰"},{"id":"fishingrod","name":"낚싯대","type":"accessory","r":"epic","em":"🎣"},{"id":"crown","name":"왕관","type":"accessory","r":"legend","em":"👑"}
+  {"id":"chick","name":"삐약이","type":"character","r":"common","em":null,"body":"#ffd23e"},{"id":"rabbit","name":"토끼","type":"character","r":"common","em":null,"body":"#f2ecf4"},{"id":"frog","name":"개굴","type":"character","r":"rare","em":null,"body":"#6ee7a0"},{"id":"cat","name":"냥이","type":"character","r":"rare","em":null,"body":"#c9c4dd"},{"id":"dog","name":"멍멍","type":"character","r":"rare","em":null,"body":"#d8a86a"},{"id":"bear","name":"곰곰","type":"character","r":"rare","em":null,"body":"#b98a5a"},{"id":"penguin","name":"뒤뚱","type":"character","r":"rare","em":null,"body":"#3a4152"},{"id":"kid","name":"모험가","type":"character","r":"rare","em":null,"body":"#5aa9ff"},{"id":"robot","name":"삐뽀","type":"character","r":"epic","em":null,"body":"#b8c0d8"},{"id":"panda","name":"판다","type":"character","r":"epic","em":null,"body":"#f4f4fa"},{"id":"fox","name":"여우","type":"character","r":"epic","em":null,"body":"#ff9a52"},{"id":"ghost","name":"부끄","type":"character","r":"epic","em":null,"body":"#eef0ff"},{"id":"dino","name":"뿔룡","type":"character","r":"legend","em":null,"body":"#7fd06a"},{"id":"phantom","name":"밤도깨비","type":"character","r":"legend","em":null,"body":"#7a5be0","secret":true},{"id":"drake","name":"아기용","type":"character","r":"legend","em":null,"body":"#ff6f4a","secret":true},{"id":"unicorn","name":"유니콘","type":"character","r":"legend","em":null,"body":"#ffc6e6","secret":true},{"id":"angel","name":"천사","type":"character","r":"legend","em":null,"body":"#f8f8ff"},{"id":"demon","name":"악마","type":"character","r":"legend","em":null,"body":"#a8324a"},
+  {"id":"stone","name":"돌다리","type":"platform","r":"common"},{"id":"wood","name":"나무판","type":"platform","r":"common"},{"id":"leaf","name":"나뭇잎","type":"platform","r":"common"},{"id":"cloud","name":"구름","type":"platform","r":"rare"},{"id":"lily","name":"연꽃잎","type":"platform","r":"rare"},{"id":"mushroom","name":"버섯","type":"platform","r":"rare"},{"id":"candy","name":"사탕","type":"platform","r":"epic"},{"id":"jelly","name":"젤리","type":"platform","r":"epic"},{"id":"glass","name":"유리","type":"platform","r":"epic"},{"id":"gold","name":"황금","type":"platform","r":"legend"},{"id":"rainbow","name":"무지개","type":"platform","r":"epic"},{"id":"lava","name":"지옥용암","type":"platform","r":"legend"},
+  {"id":"ribbon","name":"리본","type":"accessory","r":"common","em":"🎀"},{"id":"flower","name":"꽃","type":"accessory","r":"common","em":"🌸"},{"id":"glasses","name":"동그란안경","type":"accessory","r":"common","em":"👓"},{"id":"cap","name":"야구모자","type":"accessory","r":"rare","em":"🧢"},{"id":"partyhat","name":"고깔","type":"accessory","r":"rare","em":"🎉"},{"id":"headphones","name":"헤드폰","type":"accessory","r":"rare","em":"🎧"},{"id":"strawhat","name":"밀짚모자","type":"accessory","r":"rare","em":"👒"},{"id":"horns","name":"뿔","type":"accessory","r":"epic","em":"😈"},{"id":"shades","name":"선글라스","type":"accessory","r":"epic","em":"🕶️"},{"id":"halo","name":"후광","type":"accessory","r":"epic","em":"😇"},{"id":"balloon","name":"풍선","type":"accessory","r":"rare","em":"🎈"},{"id":"lollipop","name":"막대사탕","type":"accessory","r":"rare","em":"🍭"},{"id":"umbrella","name":"우산","type":"accessory","r":"rare","em":"🌂"},{"id":"wand","name":"요술봉","type":"accessory","r":"epic","em":"🪄"},{"id":"tinkerbell","name":"팅커벨","type":"accessory","r":"epic","em":"🧚"},{"id":"net","name":"잠자리채","type":"accessory","r":"rare","em":"🥅"},{"id":"flyswatter","name":"파리채","type":"accessory","r":"rare","em":"🪰"},{"id":"fishingrod","name":"낚싯대","type":"accessory","r":"epic","em":"🎣"},{"id":"crown","name":"왕관","type":"accessory","r":"legend","em":"👑"},{"id":"angelwing","name":"천사날개","type":"accessory","r":"legend","em":"🪽"},{"id":"trident","name":"악마삼지창","type":"accessory","r":"epic","em":"🔱"},{"id":"demontail","name":"악마꼬리","type":"accessory","r":"rare","em":"😈"}
 ];
 let CAT_CFG={cosmetics:{}};
 async function loadCatalog(){
@@ -404,7 +396,19 @@ const MINI_META=[
   {id:"arrow",emoji:"⬅➡",name:"방향 연타",how:"화면에 뜬 화살표 방향을 빠르게 여러 번 탭!"},
   {id:"balance",emoji:"⚖️",name:"균형 잡기",how:"치우친 반대쪽을 탭해 공을 가운데 초록칸에 유지·충전!"},
   {id:"color",emoji:"🚦",name:"신호등",how:"초록일 때만 3번 탭! 빨강·대기 중 누르면 실패."},
-  {id:"whack",emoji:"🦫",name:"두더지 잡기",how:"나타나는 목표를 사라지기 전에 정확히 콕!"}
+  {id:"whack",emoji:"🦫",name:"두더지 잡기",how:"초록만 콕! 💣 폭탄 누르면 실패."},
+  {id:"oddeven",emoji:"🔮",name:"홀짝",how:"홀? 짝? 감으로 연속 맞히기 (순수 운)."},
+  {id:"rps",emoji:"✊",name:"가위바위보",how:"컴퓨터를 이겨라! 지면 실패, 비기면 다시."},
+  {id:"math",emoji:"🧮",name:"사칙연산",how:"사칙연산 문제의 정답을 골라요."},
+  {id:"doors",emoji:"🚪",name:"운명의 문",how:"3개 중 안전한 문 고르기 (함정 회피)."},
+  {id:"dice",emoji:"🎲",name:"주사위",how:"두 주사위 합이 목표 이상 나오게! (운)."},
+  {id:"hilo",emoji:"🔢",name:"업다운",how:"다음 숫자가 위/아래일지 맞히기."},
+  {id:"slot",emoji:"🎰",name:"슬롯",how:"릴을 멈춰 같은 그림 2개 이상! (운)."},
+  {id:"simon",emoji:"🎨",name:"색 순서 기억",how:"깜빡이는 색 순서를 외워서 따라 눌러요."},
+  {id:"seq",emoji:"🔢",name:"순서 탭",how:"1부터 순서대로 빠르게 탭! 순서 틀리면 실패."},
+  {id:"count",emoji:"👀",name:"개수 세기",how:"잠깐 보인 점의 개수를 맞혀요(관찰력)."},
+  {id:"dodge",emoji:"⬇",name:"낙하물 피하기",how:"좌/우로 움직여 떨어지는 걸 피해 버텨요."},
+  {id:"findone",emoji:"🔍",name:"다른 것 찾기",how:"색이 살짝 다른 하나를 찾아 탭!"}
 ];
 let MINI_CFG={weights:{},diffBase:0,diffStep:1};
 async function loadMini(){
@@ -452,20 +456,22 @@ async function loadLegal(){
   const get=k=>{const r=map[k];if(!r)return "";const d=r.value_draft&&r.value_draft.html,l=r.value&&r.value.html;return (d!=null?d:(l||""));};
   if($("doc_terms"))$("doc_terms").innerHTML=get("legal_terms");
   if($("doc_privacy"))$("doc_privacy").innerHTML=get("legal_privacy");
-  pvDoc("terms");pvDoc("privacy");
 }
 async function saveDoc(key,id){const{error}=await sb.rpc("set_config_draft",{p_group:key,p_value:{html:docHTML($(id))}});error?toast(error.message,1):toast("✅ 저장됨 (테스터에게 즉시 반영)");}
 async function pubDoc(key,label){const{error}=await sb.rpc("publish_config",{p_group:key});error?toast(error.message,1):toast("🚀 "+label+" 배포됨");}
+function docPreview(which){const el=$("doc_"+which);if(!el)return;$("docPvTitle").textContent=which==="terms"?"📄 이용약관 미리보기":"🔒 개인정보처리방침 미리보기";$("docPvBody").innerHTML=docHTML(el);$("docPvOv").hidden=false;}
 (function(){const bind=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};
   bind("terms_draft",()=>saveDoc("legal_terms","doc_terms"));
   bind("terms_pub",()=>pubDoc("legal_terms","이용약관"));
   bind("privacy_draft",()=>saveDoc("legal_privacy","doc_privacy"));
   bind("privacy_pub",()=>pubDoc("legal_privacy","개인정보처리방침"));
-  // 굵게 버튼(선택 유지 위해 mousedown 차단) + 편집 시 미리보기 갱신 + 엔터=깔끔한 줄바꿈
-  document.querySelectorAll(".rtbtn").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{document.execCommand(b.dataset.cmd,false,null);pvDoc(b.dataset.t);};});
+  bind("terms_preview",()=>docPreview("terms"));
+  bind("privacy_preview",()=>docPreview("privacy"));
+  bind("docPvClose",()=>{$("docPvOv").hidden=true;});
+  // 굵게 버튼(선택 유지 위해 mousedown 차단) + 엔터=깔끔한 줄바꿈
+  document.querySelectorAll(".rtbtn").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{document.execCommand(b.dataset.cmd,false,null);};});
   ["terms","privacy"].forEach(t=>{const ed=$("doc_"+t);if(!ed)return;
-    ed.addEventListener("input",()=>pvDoc(t));
-    ed.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.execCommand("insertLineBreak");pvDoc(t);}});
+    ed.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();document.execCommand("insertLineBreak");}});
   });
 })();
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{
@@ -485,23 +491,32 @@ setInterval(()=>{
 
 let DASH_PERIOD="day";
 async function loadDash(){
-  const {data,error}=await sb.rpc("admin_dashboard",{p_period:DASH_PERIOD,p_points:14});
-  if(error||!data){if($("k_new"))$("k_new").textContent="!";return;}
-  const k=data.kpi||{}, s=data.series||[], per=DASH_PERIOD==="day"?"전일":"전주";
-  const setD=(id,cur,prev)=>{const el=$(id);if(!el)return;const d=(cur||0)-(prev||0);el.textContent=(d>0?"▲ +":d<0?"▼ -":"= ")+Math.abs(d).toLocaleString()+" "+per;el.className="delta "+(d>0?"up":d<0?"down":"");};
-  $("k_new").textContent=(k.new_today||0).toLocaleString(); setD("dl_new",k.new_today,k.new_prev);
-  $("k_dau").textContent=(k.dau_today||0).toLocaleString(); setD("dl_dau",k.dau_today,k.dau_prev);
-  $("k_plays").textContent=(k.plays_today||0).toLocaleString(); setD("dl_plays",k.plays_today,k.plays_prev);
+  const {data,error}=await sb.rpc("admin_dashboard",{p_period:DASH_PERIOD,p_points:7});
+  if(error||!data)return;
+  const k=data.kpi||{}, s=data.series||[], isWk=DASH_PERIOD==="week", per=isWk?"전주":"전일", cur=isWk?"이번주":"오늘";
+  const labels=s.map(r=>String(r.bucket).slice(5));
+  // 총유저 누적선: 창 밖 기준값 + 창 내 신규 누적 = 마지막이 total_users
+  const totalNew=s.reduce((a,r)=>a+(r.new_users||0),0); let base=(k.total_users||0)-totalNew; const cum=s.map(r=>{base+=(r.new_users||0);return base;});
+  const perUser=k.total_users?Math.round((k.coins||0)/k.total_users):0;
+  const perAct=k.dau_today?(k.plays_today/k.dau_today):0;
+  const rows=[
+    {t:"신규 가입 ("+cur+")", cur:k.new_today, prev:k.new_prev, data:s.map(r=>r.new_users||0), color:"#6ee7a0"},
+    {t:(isWk?"활성 (WAU)":"활성 (DAU)"), cur:k.dau_today, prev:k.dau_prev, data:s.map(r=>r.active||0), color:"#ffb454", sub:isWk?"주간 활성 유저":"오늘 활성 유저"},
+    {t:"플레이", cur:k.plays_today, prev:k.plays_prev, data:s.map(r=>r.plays||0), color:"#63e0ff", sub:(k.dau_today?(isWk?"WAU":"DAU")+"당 "+perAct.toFixed(1)+"판":"")},
+    {t:"총 유저", cur:k.total_users, prev:null, data:cum, color:"#b9a5ff", sub:"유저당 🪙"+perUser.toLocaleString()+" · 유통 🪙"+(k.coins||0).toLocaleString()}
+  ];
+  const wrap=$("metricRows"); wrap.innerHTML="";
+  rows.forEach(r=>{ const d=(r.cur||0)-(r.prev||0), showD=r.prev!=null;
+    const div=document.createElement("div"); div.className="metricrow";
+    div.innerHTML="<div class='mbox'><div class='ml'>"+r.t+"</div><div class='mv'>"+(r.cur||0).toLocaleString()+"</div>"+
+      (showD?"<div class='delta "+(d>0?"up":d<0?"down":"")+"'>"+(d>0?"▲ +":d<0?"▼ -":"= ")+Math.abs(d).toLocaleString()+" "+per+"</div>":"")+
+      (r.sub?"<div class='msub'>"+r.sub+"</div>":"")+"</div><canvas width='600' height='120'></canvas>";
+    wrap.appendChild(div); drawChart(div.querySelector("canvas"), labels, r.data, r.color);
+  });
   $("k_mau").textContent=(k.mau||0).toLocaleString();
   $("k_stick").textContent=(k.mau?Math.round((k.dau_today||0)/k.mau*100):0)+"%";
-  $("k_users").textContent=(k.total_users||0).toLocaleString();
-  if($("k_coins"))$("k_coins").textContent="🪙"+(k.coins||0).toLocaleString()+" 유통";
-  if($("d_new_lbl"))$("d_new_lbl").textContent=DASH_PERIOD==="day"?"오늘":"이번주";
-  if($("ch_unit"))$("ch_unit").textContent=DASH_PERIOD==="day"?"최근 14일":"최근 14주";
-  const labels=s.map(r=>String(r.bucket).slice(5));
-  drawChart($("chNew"),labels,s.map(r=>r.new_users||0),"#6ee7a0");
-  drawChart($("chPlays"),labels,s.map(r=>r.plays||0),"#63e0ff");
-  drawChart($("chDau"),labels,s.map(r=>r.active||0),"#ffb454");
+  if($("k_stick_lbl"))$("k_stick_lbl").textContent=isWk?"WAU/MAU":"DAU/MAU";
+  if($("dash_range"))$("dash_range").textContent=isWk?"최근 7주":"최근 7일";
 }
 let _tipEl;
 function showTip(cx,ty,txt){if(!_tipEl){_tipEl=document.createElement("div");_tipEl.className="chtip";document.body.appendChild(_tipEl);}_tipEl.textContent=txt;_tipEl.style.display="block";_tipEl.style.left=cx+"px";_tipEl.style.top=(ty-6)+"px";}
@@ -525,7 +540,8 @@ async function loadConfig(){
   const {data,error}=await sb.from("game_config").select("*").order("key");
   const wrap=$("cfgWrap");wrap.innerHTML="";
   if(error){wrap.innerHTML="<div class='panel'>로드 실패: "+error.message+"</div>";return;}
-  (data||[]).forEach(row=>{
+  const HIDE=["legal_terms","legal_privacy","minigames","gacha","shop","catalog"];  // 전용 탭이 따로 있는 config는 이코노미에서 숨김
+  (data||[]).filter(row=>!HIDE.includes(row.key)).forEach(row=>{
     const eff=row.value_draft||row.value||{},live=row.value||{};
     const card=document.createElement("div");card.className="panel";
     let h="<h3>"+row.key+" <span style='font-size:11px;color:var(--amber)'>draft 편집</span></h3>";
@@ -570,7 +586,7 @@ async function loadAnn(){
   el.querySelectorAll("[data-id]").forEach(b=>b.onclick=async()=>{const{error}=await sb.rpc("admin_set_announcement",{p_id:Number(b.dataset.id),p_active:b.dataset.on==="true"});error?toast(error.message,1):(toast("변경됨"),loadAnn());});
 }
 
-const UTOT={char:16,plat:10,acc:20,egg:14,badge:15,set:17};
+const UTOT={char:18,plat:12,acc:23,egg:14,badge:15,set:19};
 let USERS=[], SEL=new Set();
 $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.target.value.trim());});
 if($("u_sort"))$("u_sort").onchange=()=>loadUsers($("u_search").value.trim());
