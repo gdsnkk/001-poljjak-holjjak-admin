@@ -148,6 +148,7 @@
     <button class="nav" data-s="users"><span class="ic">👥</span>유저</button>
     <button class="nav" data-s="shop"><span class="ic">🛒</span>상점</button>
     <button class="nav" data-s="mini"><span class="ic">🎮</span>미니게임</button>
+    <button class="nav" data-s="ref"><span class="ic">📖</span>도감</button>
     <button class="nav" data-s="legal"><span class="ic">⚖️</span>법률</button>
     <div class="navfoot"><span id="whoami"></span><br><button class="btn gh sm" id="logout1" style="margin-top:8px">로그아웃</button></div>
   </nav>
@@ -222,6 +223,13 @@
         <div class="btns"><button class="btn test" id="gacha_draft">테스트 적용</button><button class="btn pub" id="gacha_pub">배포하기</button></div>
       </div>
       <div class="panel">
+        <h3>🎁 깜짝 보너스 확률 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
+        <p style="font-size:12px;color:var(--dim);margin:0 0 10px">엔드리스·오늘의 도전에서 <b>성공 착지(정답)</b> 시 낮은 확률로 발동. (미니게임/부활과 별개)</p>
+        <div class="cfgrow"><label>🎰 공짜 뽑기 확률 (%)</label><input class="val" id="bn_gacha" type="number" min="0" step="0.1" inputmode="decimal"><span class="live">랜덤 코스메틱 하나</span></div>
+        <div class="cfgrow"><label>🎁 몰래 온 선물 확률 (%)</label><input class="val" id="bn_gift" type="number" min="0" step="0.1" inputmode="decimal"><span class="live">🪙10~100 또는 아이템</span></div>
+        <div class="btns"><button class="btn test" id="bonus_draft">테스트 적용</button><button class="btn pub" id="bonus_pub">배포하기</button></div>
+      </div>
+      <div class="panel">
         <h3>🛍 상점 아이템 <span style="font-size:11px;color:var(--amber)">draft 편집</span></h3>
         <div style="font-size:11px;color:var(--faint);margin-bottom:8px">코스메틱(펫·발판·악세) 가격은 등급별로 적용됩니다.</div>
         <div id="rarityRows"></div>
@@ -247,6 +255,12 @@
         <div class="cfgrow"><label>세이브마다 +난이도 (diffStep)</label><input class="val" id="mini_step" type="number" step="0.5" inputmode="decimal"><span class="live">한 판에 여러 번 살수록 가중</span></div>
         <div class="btns"><button class="btn test" id="mini_draft">테스트 적용</button><button class="btn pub" id="mini_pub">배포하기</button></div>
       </div>
+    </section>
+    <section id="ref">
+      <div class="panel"><h3>🔗 시너지 세트 <span id="ref_sets_n" style="font-size:11px;color:var(--faint)"></span></h3><div id="ref_sets"></div></div>
+      <div class="panel"><h3>🥚 이스터에그 <span id="ref_eggs_n" style="font-size:11px;color:var(--faint)"></span></h3><div id="ref_eggs"></div></div>
+      <div class="panel"><h3>🎖 유저 뱃지 <span id="ref_badges_n" style="font-size:11px;color:var(--faint)"></span></h3><div id="ref_badges"></div></div>
+      <p style="font-size:11px;color:var(--faint)">※ 조건·효과·보상은 게임 코드에 정의됨(참고용 도감). 변경은 앱 업데이트 영역.</p>
     </section>
     <section id="legal">
       <div class="panel">
@@ -292,10 +306,10 @@ async function enter(){
   const {data:{user}}=await sb.auth.getUser();
   $("whoami").textContent="👤 "+(user?.email||"admin");
   $("app").hidden=false;
-  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();
+  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();loadBonus();renderRef();
 }
 
-const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",legal:"법률 (약관·개인정보)"};
+const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",ref:"도감 (조합·에그·뱃지)",legal:"법률 (약관·개인정보)"};
 // 갓챠: 게임과 동일하게 등급별 아이템수×가중치로 확률 계산(비밀 캐릭 제외 대표값)
 const GPOOL={common:8,rare:19,epic:15,legend:7};
 const RMETA=[{id:"common",name:"일반",col:"#a99ed6"},{id:"rare",name:"레어",col:"#63e0ff"},{id:"epic",name:"에픽",col:"#b98cff"},{id:"legend",name:"전설",col:"#ffd23e"}];
@@ -334,10 +348,24 @@ async function saveShop(pub){
   else toast("✅ 저장됨 (테스터 즉시 반영)");
 }
 (function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("shop_draft",()=>saveShop(false));b("shop_pub",()=>saveShop(true));})();
+// 깜짝 보너스 확률
+let BONUS_CFG={gachaPct:1.0,giftPct:0.6};
+async function loadBonus(){ const {data}=await sb.from("game_config").select("value,value_draft").eq("key","bonus").maybeSingle(); const c=(data&&(data.value_draft||data.value))||{}; BONUS_CFG={gachaPct:(c.gachaPct!=null?c.gachaPct:1.0),giftPct:(c.giftPct!=null?c.giftPct:0.6)}; if($("bn_gacha"))$("bn_gacha").value=BONUS_CFG.gachaPct; if($("bn_gift"))$("bn_gift").value=BONUS_CFG.giftPct; }
+async function saveBonus(pub){ const obj={gachaPct:Number($("bn_gacha").value)||0,giftPct:Number($("bn_gift").value)||0}; let {error}=await sb.rpc("set_config_draft",{p_group:"bonus",p_value:obj}); if(error){toast(error.message,1);return;} if(pub){({error}=await sb.rpc("publish_config",{p_group:"bonus"}));if(error){toast(error.message,1);return;}toast("🚀 보너스 확률 배포됨");} else toast("✅ 저장됨 (테스터 즉시)"); }
+(function(){const b=(id,fn)=>{const el=$(id);if(el)el.onclick=fn;};b("bonus_draft",()=>saveBonus(false));b("bonus_pub",()=>saveBonus(true));})();
+// 📖 도감(참고용) — 게임 코드 정의 미러
+const SETS_REF=[{"name":"삐약이의 봄나들이","combo":"삐약이 + 나무판 + 리본","eff":"🍀+4"},{"name":"연못의 왕자","combo":"개굴 + 연꽃잎 + 왕관","eff":"💰+15"},{"name":"구름 위 천사","combo":"부끄 + 구름 + 후광","eff":"🪶+15"},{"name":"달콤 파티","combo":"냥이 + 사탕 + 고깔","eff":"🍀+6 💰+6"},{"name":"숲속 여우","combo":"여우 + 나뭇잎 + 밀짚모자","eff":"🍀+8"},{"name":"빙판 위 펭귄","combo":"뒤뚱 + 유리 + 선글라스","eff":"💰+8 🪶+4"},{"name":"황금 뿔룡","combo":"뿔룡 + 황금 + 뿔","eff":"🍀+5 💰+20"},{"name":"토끼의 버섯밭","combo":"토끼 + 버섯 + 꽃","eff":"🍀+3 🪶+6"},{"name":"힙합 강아지","combo":"멍멍 + 젤리 + 헤드폰","eff":"🍀+5 💰+5"},{"name":"숲의 곰 왕","combo":"곰곰 + 돌다리 + 왕관","eff":"💰+4 🪶+8"},{"name":"로봇 탐험대","combo":"삐뽀 + 유리 + 야구모자","eff":"🍀+3 💰+8"},{"name":"밀짚 판다","combo":"판다 + 나뭇잎 + 밀짚모자","eff":"💰+4 🪶+6"},{"name":"장난꾸러기","combo":"모험가 + 사탕 + 뿔","eff":"🍀+4 💰+7"},{"name":"요정 이야기","combo":"삐약이 + 구름 + 팅커벨","eff":"🍀+6 🪶+4"},{"name":"곤충 채집가","combo":"개굴 + 나뭇잎 + 잠자리채","eff":"🍀+5 💰+5"},{"name":"낚시왕","combo":"냥이 + 연꽃잎 + 낚싯대","eff":"💰+9 🪶+3"},{"name":"파리 소탕단","combo":"멍멍 + 버섯 + 파리채","eff":"🍀+3 💰+7"},{"name":"천상의 수호천사","combo":"천사 + 무지개 + 천사날개","eff":"🍀+5 🪶+20"},{"name":"지옥의 군주","combo":"악마 + 지옥용암 + 삼지창","eff":"🍀+8 💰+22"}];
+const EGGS_REF=[{"ic":"🤭","name":"간지럼쟁이","hint":"홈 펫을 쉬지 않고 콕콕콕…","reward":100},{"ic":"😵‍💫","name":"갈팡질팡","hint":"펫 창에서 꾸미기를 정신없이 갈아끼우면?","reward":80},{"ic":"🎰","name":"도파민 중독","hint":"뽑기를 자꾸 당기면?","reward":150},{"ic":"📚","name":"수집가","hint":"세상의 모든 펫을 모으면?","reward":300},{"ic":"💰","name":"코인 부자","hint":"코인을 산더미처럼 쌓으면?","reward":120},{"ic":"🧭","name":"방랑자","hint":"여정을 아주 멀리 떠나면?","reward":150},{"ic":"🔥","name":"개근왕","hint":"7일 연속 출석하면?","reward":150},{"ic":"🪨","name":"발판 수집가","hint":"세상의 모든 발판을 모으면?","reward":200},{"ic":"🎀","name":"멋쟁이","hint":"모든 악세서리를 모으면?","reward":200},{"ic":"🤝","name":"첫 친구","hint":"친구를 처음 추가하면?","reward":120},{"ic":"🏳️","name":"팀의 탄생","hint":"직접 팀을 처음 만들면?","reward":120},{"ic":"📣","name":"입소문","hint":"친구에게 초대 링크를 보내면?","reward":100},{"ic":"🧗","name":"암벽등반가","hint":"한 판에 아주 높이 올라가면?","reward":200},{"ic":"🪂","name":"불사조","hint":"위기에서 자꾸 살아남으면?","reward":180},{"ic":"🌟","name":"만렙 마스터","hint":"펫을 최고 레벨(Lv.5)까지 키우면?","reward":300},{"ic":"🕵️","name":"비밀 수집가","hint":"숨겨진 비밀 펫을 모두 손에 넣으면?","reward":280},{"ic":"🎮","name":"백판 장인","hint":"게임을 아주 많이(100판) 즐기면?","reward":200},{"ic":"🔗","name":"시너지 애호가","hint":"시너지 세트를 5개 이상 완성하면?","reward":180},{"ic":"🎰","name":"뽑기왕","hint":"뽑기를 50번이나 당기면?","reward":220}];
+const BADGES_REF=[{"ic":"🥉","name":"오늘의 도전 TOP3","desc":"오늘의 도전 3위 안에 들기","eff":"🍀+2"},{"ic":"🥇","name":"오늘의 챔피언","desc":"오늘의 도전 1등 하기","eff":"💰+3"},{"ic":"🏅","name":"주간 TOP3","desc":"주간 개인 랭킹 3위 안에 들기","eff":"🪶+3"},{"ic":"👑","name":"주간 챔피언","desc":"주간 개인 랭킹 1등 하기","eff":"🍀+4"},{"ic":"🎽","name":"팀전 TOP3","desc":"주간 팀전 3위 안에 들기","eff":"💰+4"},{"ic":"🏆","name":"팀전 챔피언","desc":"주간 팀전 1등 하기","eff":"🪶+5"},{"ic":"✨","name":"시너지 마스터","desc":"시크릿 조합(세트) 모두 열기","eff":"🍀+5"},{"ic":"🎈","name":"이스터에그 헌터","desc":"이스터에그 모두 열기","eff":"💰+5"},{"ic":"🗺️","name":"여정 개척자","desc":"여정 Lv.10 도달","eff":"💰+3"},{"ic":"⭐","name":"진화 마스터","desc":"펫을 Lv.3까지 진화","eff":"🪶+4"},{"ic":"🎰","name":"뽑기 매니아","desc":"랜덤 뽑기 30회","eff":"🍀+3"},{"ic":"🫂","name":"인싸","desc":"친구 5명 모으기","eff":"🍀+3"},{"ic":"🎮","name":"단골","desc":"누적 50판 플레이","eff":"💰+3"},{"ic":"💎","name":"큰손","desc":"코인 누적 10,000 획득","eff":"🍀+4"},{"ic":"🌏","name":"대항해자","desc":"여정 2,000칸 이동","eff":"🪶+4"}];
+function renderRef(){
+  if($("ref_sets")){ $("ref_sets_n").textContent="("+SETS_REF.length+")"; $("ref_sets").innerHTML=SETS_REF.map(s=>"<div class='cfgrow' style='align-items:center'><label style='width:auto;flex:1'><b style='color:var(--ink)'>"+s.name+"</b><br><span style='font-size:11px;color:var(--dim)'>"+s.combo+"</span></label><span class='live' style='color:var(--gold2)'>"+s.eff+"</span></div>").join(""); }
+  if($("ref_eggs")){ $("ref_eggs_n").textContent="("+EGGS_REF.length+")"; $("ref_eggs").innerHTML=EGGS_REF.map(e=>"<div class='cfgrow' style='align-items:center'><label style='width:auto;flex:1'><b style='color:var(--ink)'>"+e.ic+" "+e.name+"</b><br><span style='font-size:11px;color:var(--dim)'>"+e.hint+"</span></label><span class='live' style='color:var(--gold2)'>🪙"+e.reward+"</span></div>").join(""); }
+  if($("ref_badges")){ $("ref_badges_n").textContent="("+BADGES_REF.length+")"; $("ref_badges").innerHTML=BADGES_REF.map(b=>"<div class='cfgrow' style='align-items:center'><label style='width:auto;flex:1'><b style='color:var(--ink)'>"+b.ic+" "+b.name+"</b><br><span style='font-size:11px;color:var(--dim)'>"+b.desc+"</span></label><span class='live' style='color:var(--gold2)'>"+b.eff+"</span></div>").join(""); }
+}
 const CATALOG=[
   {"id":"chick","name":"삐약이","type":"character","r":"common","em":null,"body":"#ffd23e"},{"id":"rabbit","name":"토끼","type":"character","r":"common","em":null,"body":"#f2ecf4"},{"id":"frog","name":"개굴","type":"character","r":"rare","em":null,"body":"#6ee7a0"},{"id":"cat","name":"냥이","type":"character","r":"rare","em":null,"body":"#c9c4dd"},{"id":"dog","name":"멍멍","type":"character","r":"rare","em":null,"body":"#d8a86a"},{"id":"bear","name":"곰곰","type":"character","r":"rare","em":null,"body":"#b98a5a"},{"id":"penguin","name":"뒤뚱","type":"character","r":"rare","em":null,"body":"#3a4152"},{"id":"kid","name":"모험가","type":"character","r":"rare","em":null,"body":"#5aa9ff"},{"id":"robot","name":"삐뽀","type":"character","r":"epic","em":null,"body":"#b8c0d8"},{"id":"panda","name":"판다","type":"character","r":"epic","em":null,"body":"#f4f4fa"},{"id":"fox","name":"여우","type":"character","r":"epic","em":null,"body":"#ff9a52"},{"id":"ghost","name":"부끄","type":"character","r":"epic","em":null,"body":"#eef0ff"},{"id":"dino","name":"뿔룡","type":"character","r":"legend","em":null,"body":"#7fd06a"},{"id":"phantom","name":"밤도깨비","type":"character","r":"legend","em":null,"body":"#7a5be0","secret":true},{"id":"drake","name":"아기용","type":"character","r":"legend","em":null,"body":"#ff6f4a","secret":true},{"id":"unicorn","name":"유니콘","type":"character","r":"legend","em":null,"body":"#ffc6e6","secret":true},{"id":"angel","name":"천사","type":"character","r":"legend","em":null,"body":"#f8f8ff"},{"id":"demon","name":"악마","type":"character","r":"legend","em":null,"body":"#a8324a"},
   {"id":"stone","name":"돌다리","type":"platform","r":"common"},{"id":"wood","name":"나무판","type":"platform","r":"common"},{"id":"leaf","name":"나뭇잎","type":"platform","r":"common"},{"id":"cloud","name":"구름","type":"platform","r":"rare"},{"id":"lily","name":"연꽃잎","type":"platform","r":"rare"},{"id":"mushroom","name":"버섯","type":"platform","r":"rare"},{"id":"candy","name":"사탕","type":"platform","r":"epic"},{"id":"jelly","name":"젤리","type":"platform","r":"epic"},{"id":"glass","name":"유리","type":"platform","r":"epic"},{"id":"gold","name":"황금","type":"platform","r":"legend"},{"id":"rainbow","name":"무지개","type":"platform","r":"epic"},{"id":"lava","name":"지옥용암","type":"platform","r":"legend"},
-  {"id":"ribbon","name":"리본","type":"accessory","r":"common","em":"🎀"},{"id":"flower","name":"꽃","type":"accessory","r":"common","em":"🌸"},{"id":"glasses","name":"동그란안경","type":"accessory","r":"common","em":"👓"},{"id":"cap","name":"야구모자","type":"accessory","r":"rare","em":"🧢"},{"id":"partyhat","name":"고깔","type":"accessory","r":"rare","em":"🎉"},{"id":"headphones","name":"헤드폰","type":"accessory","r":"rare","em":"🎧"},{"id":"strawhat","name":"밀짚모자","type":"accessory","r":"rare","em":"👒"},{"id":"horns","name":"뿔","type":"accessory","r":"epic","em":"😈"},{"id":"shades","name":"선글라스","type":"accessory","r":"epic","em":"🕶️"},{"id":"halo","name":"후광","type":"accessory","r":"epic","em":"😇"},{"id":"balloon","name":"풍선","type":"accessory","r":"rare","em":"🎈"},{"id":"lollipop","name":"막대사탕","type":"accessory","r":"rare","em":"🍭"},{"id":"umbrella","name":"우산","type":"accessory","r":"rare","em":"🌂"},{"id":"wand","name":"요술봉","type":"accessory","r":"epic","em":"🪄"},{"id":"tinkerbell","name":"팅커벨","type":"accessory","r":"epic","em":"🧚"},{"id":"net","name":"잠자리채","type":"accessory","r":"rare","em":"🥅"},{"id":"flyswatter","name":"파리채","type":"accessory","r":"rare","em":"🪰"},{"id":"fishingrod","name":"낚싯대","type":"accessory","r":"epic","em":"🎣"},{"id":"crown","name":"왕관","type":"accessory","r":"legend","em":"👑"},{"id":"angelwing","name":"천사날개","type":"accessory","r":"legend","em":"🪽"},{"id":"trident","name":"악마삼지창","type":"accessory","r":"epic","em":"🔱"},{"id":"demontail","name":"악마꼬리","type":"accessory","r":"rare","em":"😈"}
+  {"id":"ribbon","name":"리본","type":"accessory","r":"common","em":"🎀"},{"id":"flower","name":"꽃","type":"accessory","r":"common","em":"🌸"},{"id":"glasses","name":"안경","type":"accessory","r":"common","em":"👓"},{"id":"cap","name":"야구모자","type":"accessory","r":"rare","em":"🧢"},{"id":"partyhat","name":"고깔","type":"accessory","r":"rare","em":"🎉"},{"id":"headphones","name":"헤드폰","type":"accessory","r":"rare","em":"🎧"},{"id":"strawhat","name":"밀짚모자","type":"accessory","r":"rare","em":"👒"},{"id":"horns","name":"뿔","type":"accessory","r":"epic","em":"😈"},{"id":"shades","name":"선글라스","type":"accessory","r":"epic","em":"🕶️"},{"id":"halo","name":"후광","type":"accessory","r":"epic","em":"😇"},{"id":"balloon","name":"풍선","type":"accessory","r":"rare","em":"🎈"},{"id":"lollipop","name":"막대사탕","type":"accessory","r":"rare","em":"🍭"},{"id":"umbrella","name":"우산","type":"accessory","r":"rare","em":"🌂"},{"id":"wand","name":"요술봉","type":"accessory","r":"epic","em":"🪄"},{"id":"tinkerbell","name":"팅커벨","type":"accessory","r":"epic","em":"🧚"},{"id":"net","name":"잠자리채","type":"accessory","r":"rare","em":"🥅"},{"id":"flyswatter","name":"파리채","type":"accessory","r":"rare","em":"🪰"},{"id":"fishingrod","name":"낚싯대","type":"accessory","r":"epic","em":"🎣"},{"id":"crown","name":"왕관","type":"accessory","r":"legend","em":"👑"},{"id":"angelwing","name":"천사날개","type":"accessory","r":"legend","em":"🪽"},{"id":"trident","name":"삼지창","type":"accessory","r":"epic","em":"🔱"},{"id":"demontail","name":"악마꼬리","type":"accessory","r":"rare","em":"😈"}
 ];
 let CAT_CFG={cosmetics:{}};
 async function loadCatalog(){
@@ -586,7 +614,7 @@ async function loadAnn(){
   el.querySelectorAll("[data-id]").forEach(b=>b.onclick=async()=>{const{error}=await sb.rpc("admin_set_announcement",{p_id:Number(b.dataset.id),p_active:b.dataset.on==="true"});error?toast(error.message,1):(toast("변경됨"),loadAnn());});
 }
 
-const UTOT={char:18,plat:12,acc:23,egg:14,badge:15,set:19};
+const UTOT={char:18,plat:12,acc:23,egg:19,badge:15,set:19};
 let USERS=[], SEL=new Set();
 $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.target.value.trim());});
 if($("u_sort"))$("u_sort").onchange=()=>loadUsers($("u_search").value.trim());
