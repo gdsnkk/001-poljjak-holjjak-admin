@@ -663,7 +663,7 @@ function udetail(u){
     "<div><label>가입</label>"+d(u.created_at)+"</div>"+
     "<div><label>최근활동</label>"+d(u.last_at)+"</div>"+
     "</div>"+
-    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button></div>";
+    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button><button class='btn gh sm' data-a='del' data-id='"+u.id+"' style='color:var(--red);border-color:var(--red);margin-left:auto'>🗑 삭제</button></div>";
 }
 function updBulk(){const bar=$("bulkbar");if(!bar)return;if(SEL.size>0){bar.style.display="flex";$("bulkcount").textContent=SEL.size+"명 선택";}else bar.style.display="none";}
 if($("bulk_clear"))$("bulk_clear").onclick=()=>{SEL.clear();renderUsers();};
@@ -690,6 +690,14 @@ async function userAction(act,id){let error;
   if(act==="coin"){const n=prompt("지급할 코인 (음수=차감)");if(n===null)return;({error}=await sb.rpc("admin_grant_coins",{p_target:id,p_amount:Number(n),p_reason:"🛠 어드민 지급"}));}
   else if(act==="role"){const r=prompt("역할: user / tester / admin");if(!r)return;({error}=await sb.rpc("admin_set_role",{p_target:id,p_role:r}));}
   else if(act==="seg"){const s=prompt("세그먼트 추가 (예: promo1)");if(!s)return;({error}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:s,p_add:true}));}
+  else if(act==="del"){
+    const u=USERS.find(x=>x.id===id)||{};
+    if(!confirm("⚠️ 이 유저를 완전 삭제할까요?\n\n닉네임: "+(u.nickname||"—")+"\n이메일: "+(u.email||"—")+"\n\n계정·기록·보유템·코인이 전부 영구 삭제되며 되돌릴 수 없습니다."))return;
+    const typed=prompt('한 번 더 확인 — 삭제하려면 "삭제" 를 입력하세요.');
+    if(typed!=="삭제"){toast("취소됨");return;}
+    ({error}=await sb.rpc("admin_delete_user",{p_target:id}));
+    if(!error){toast("🗑 유저 삭제됨");loadUsers($("u_search").value.trim());return;}
+  }
   error?toast(error.message,1):(toast("완료"),loadUsers($("u_search").value.trim()));
 }
 </script>
