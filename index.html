@@ -622,6 +622,7 @@ $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.targ
 if($("u_sort"))$("u_sort").onchange=()=>loadUsers($("u_search").value.trim());
 function ufmt(n){return Number(n||0).toLocaleString();}
 function prov(p){return {google:"🟢 구글",apple:"⚫ 애플",kakao:"🟡 카카오",email:"✉️ 이메일"}[p]||("・"+(p||"?"));}
+function plat(p){return {ios:"📱 iOS",android:"🤖 안드로이드",web:"🌐 웹"}[p]||"❔ 미상";}
 async function loadUsers(q){
   const sort=$("u_sort")?$("u_sort").value:"recent";
   const {data,error}=await sb.rpc("admin_user_stats",{p_search:q||"",p_limit:100,p_sort:sort});
@@ -635,7 +636,7 @@ function renderUsers(){
   USERS.forEach(u=>{const tag=u.role==="admin"?"a":u.role==="tester"?"t":"u";
     h+="<tr class='urow-main' data-id='"+u.id+"'>"+
       "<td><input type='checkbox' class='usel' data-id='"+u.id+"'"+(SEL.has(u.id)?" checked":"")+"></td>"+
-      "<td><b>"+(u.nickname||"—")+"</b> <small style='font-size:9px;color:var(--faint)'>"+prov(u.provider)+"</small><br><small style='color:var(--faint);font-size:10px'>"+(u.email||"")+"</small></td>"+
+      "<td><b>"+(u.nickname||"—")+"</b> <small style='font-size:9px;color:var(--faint)'>"+plat(u.platform)+"</small><br><small style='color:var(--faint);font-size:10px'>"+(u.email||"")+"</small></td>"+
       "<td>"+ufmt(u.coins)+"</td>"+
       "<td><span style='color:var(--green)'>+"+ufmt(u.earned)+"</span> / <span style='color:var(--red)'>-"+ufmt(u.spent)+"</span></td>"+
       "<td>"+ufmt(u.plays)+"</td>"+
@@ -660,6 +661,7 @@ function udetail(u){
     "<div><label>뱃지</label>"+m(u.badges,UTOT.badge)+"</div>"+
     "<div><label>세트</label>"+m(u.sets,UTOT.set)+"</div>"+
     "<div><label>가챠</label>"+ufmt(u.gacha)+"회</div>"+
+    "<div><label>플랫폼</label>"+plat(u.platform)+"</div>"+
     "<div><label>가입경로</label>"+prov(u.provider)+"</div>"+
     "<div><label>결제금액</label><small style='color:var(--faint)'>수익화 후</small></div>"+
     "<div><label>리워드시청</label>"+ufmt(u.reward_views)+"회</div>"+
