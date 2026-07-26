@@ -187,6 +187,15 @@
         <div class="btns"><button class="btn pub" id="a_post">공지 등록</button></div>
       </div>
       <div class="panel"><h3>공지 목록</h3><div id="annList">불러오는 중…</div></div>
+      <div class="panel"><h3>📨 개인 공지 보내기</h3>
+        <div class="fld"><label>유저 검색 (닉네임/이메일)</label><input id="pn_search" class="in" placeholder="검색어 입력 후 Enter"></div>
+        <div id="pn_results" style="display:flex;flex-direction:column;gap:4px;max-height:170px;overflow:auto;margin-bottom:8px"></div>
+        <div class="fld"><label>선택된 유저 (한 명 또는 여러 명)</label><div id="pn_selected" style="display:flex;flex-wrap:wrap;gap:5px;min-height:22px"></div></div>
+        <div class="fld"><label>제목 (비우면 '📢 알림')</label><input id="pn_title" class="in" placeholder="📢 알림"></div>
+        <div class="fld"><label>본문</label><textarea id="pn_body" class="in" style="min-height:70px"></textarea></div>
+        <div class="btns"><button class="btn pub" id="pn_send">📨 선택 유저에게 보내기</button></div>
+      </div>
+      <div class="panel"><h3>보낸 개인 공지</h3><div id="pnList">불러오는 중…</div></div>
     </section>
 
     <section id="users">
@@ -306,7 +315,7 @@ async function enter(){
   const {data:{user}}=await sb.auth.getUser();
   $("whoami").textContent="👤 "+(user?.email||"admin");
   $("app").hidden=false;
-  loadDash();loadConfig();loadAnn();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();loadBonus();renderRef();
+  loadDash();loadConfig();loadAnn();loadPersonalNotices();loadUsers("");loadLegal();loadMini();loadShop();loadCatalog();loadBonus();renderRef();
 }
 
 const titles={dash:"대시보드",econ:"이코노미 설정",ann:"공지 관리",users:"유저 관리",shop:"상점·갓챠",mini:"부활 미니게임",ref:"도감 (조합·에그·뱃지)",legal:"법률 (약관·개인정보)"};
@@ -617,6 +626,42 @@ async function loadAnn(){
   el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("이 공지를 완전 삭제할까요?\n되돌릴 수 없습니다."))return;const{error}=await sb.rpc("admin_delete_announcement",{p_id:Number(b.dataset.del)});error?toast(error.message,1):(toast("🗑 삭제됨"),loadAnn());});
 }
 
+// ── 개인 공지 (공지 탭) : 유저 검색 → 다중선택 → 발송 / 목록·수정·삭제 ──
+let PN_SEL={};   // id -> nickname
+async function pnSearch(q){
+  const el=$("pn_results"); if(!q){el.innerHTML="";return;}
+  const {data,error}=await sb.rpc("admin_user_stats",{p_search:q,p_limit:30,p_sort:"recent"});
+  if(error){el.innerHTML="<div style='color:var(--red);font-size:12px'>"+error.message+"</div>";return;}
+  if(!data||!data.length){el.innerHTML="<div style='color:var(--faint);font-size:12px'>검색 결과 없음</div>";return;}
+  el.innerHTML=data.map(u=>"<div style='display:flex;align-items:center;gap:8px;font-size:12px'><button class='btn gh sm' data-add='"+u.id+"' data-nick='"+String(u.nickname||"—").replace(/'/g,"&#39;")+"'>+</button><b>"+(u.nickname||"—")+"</b> <span style='color:var(--faint)'>"+(u.email||"")+" · "+plat(u.platform)+"</span></div>").join("");
+  el.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{PN_SEL[b.dataset.add]=b.dataset.nick;renderPnSelected();});
+}
+function renderPnSelected(){
+  const el=$("pn_selected"); if(!el)return; const ids=Object.keys(PN_SEL);
+  if(!ids.length){el.innerHTML="<span style='color:var(--faint);font-size:12px'>없음 — 위에서 검색해 선택</span>";return;}
+  el.innerHTML=ids.map(id=>"<span style='background:var(--line);padding:3px 8px;border-radius:99px;font-size:12px'>"+PN_SEL[id]+" <b data-rm='"+id+"' style='cursor:pointer;color:var(--red)'>×</b></span>").join("");
+  el.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{delete PN_SEL[b.dataset.rm];renderPnSelected();});
+}
+if($("pn_search"))$("pn_search").addEventListener("keydown",e=>{if(e.key==="Enter")pnSearch(e.target.value.trim());});
+if($("pn_send"))$("pn_send").onclick=async()=>{
+  const ids=Object.keys(PN_SEL); if(!ids.length){toast("유저를 먼저 선택하세요",1);return;}
+  const body=$("pn_body").value.trim(); if(!body){toast("본문을 입력하세요",1);return;}
+  const title=$("pn_title").value.trim()||"📢 알림";
+  const btn=$("pn_send"); btn.disabled=true; let ok=0,fail=0;
+  for(const id of ids){ const {error}=await sb.rpc("admin_send_notice",{p_user:id,p_title:title,p_body:body}); error?fail++:ok++; }
+  btn.disabled=false; toast("📨 "+ok+"명 발송"+(fail?" ("+fail+" 실패)":""));
+  PN_SEL={};renderPnSelected();$("pn_title").value="";$("pn_body").value="";$("pn_results").innerHTML="";$("pn_search").value="";loadPersonalNotices();
+};
+async function loadPersonalNotices(){
+  const {data}=await sb.rpc("admin_list_all_notices",{p_limit:100});
+  const el=$("pnList"); if(!el)return; if(!data){el.textContent="없음";return;}
+  el.innerHTML=data.map(n=>{const dt=String(n.created_at||"").slice(0,16).replace("T"," ");
+    return "<div class='cfgrow' style='align-items:center;gap:9px'><label style='width:auto;flex:1'><b style='color:var(--ink)'>"+(n.nickname||"—")+"</b> <span style='color:var(--faint);font-size:10px'>"+(n.read_at?"읽음":"안읽음")+"</span><br><span style='font-size:11px'>"+n.title+"</span> <span style='font-size:10px;color:var(--faint)'>"+dt+"</span></label><button class='btn gh sm' data-pnedit='"+n.id+"'>✏️</button><button class='btn gh sm' data-pndel='"+n.id+"' style='color:var(--red);border-color:var(--red)'>🗑</button></div>";}).join("")||"없음";
+  el.querySelectorAll("[data-pnedit]").forEach(b=>b.onclick=async()=>{const n=data.find(x=>String(x.id)===b.dataset.pnedit)||{};const t=prompt("제목 수정",n.title||"");if(t===null)return;const bd=prompt("본문 수정",n.body||"");if(bd===null)return;const{error}=await sb.rpc("admin_edit_notice",{p_id:Number(b.dataset.pnedit),p_title:t,p_body:bd});error?toast(error.message,1):(toast("✏️ 수정됨"),loadPersonalNotices());});
+  el.querySelectorAll("[data-pndel]").forEach(b=>b.onclick=async()=>{if(!confirm("이 개인공지를 삭제할까요?"))return;const{error}=await sb.rpc("admin_delete_notice",{p_id:Number(b.dataset.pndel)});error?toast(error.message,1):(toast("🗑 삭제됨"),loadPersonalNotices());});
+}
+renderPnSelected();
+
 const UTOT={char:18,plat:12,acc:23,egg:20,badge:20,set:20};
 let USERS=[], SEL=new Set();
 $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.target.value.trim());});
@@ -670,7 +715,7 @@ function udetail(u){
     "<div><label>가입</label>"+d(u.created_at)+"</div>"+
     "<div><label>최근활동</label>"+d(u.last_at)+"</div>"+
     "</div>"+
-    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button><button class='btn gh sm' data-a='notice' data-id='"+u.id+"'>📨 알림</button><button class='btn gh sm' data-a='del' data-id='"+u.id+"' style='color:var(--red);border-color:var(--red);margin-left:auto'>🗑 삭제</button></div>";
+    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button><button class='btn gh sm' data-a='del' data-id='"+u.id+"' style='color:var(--red);border-color:var(--red);margin-left:auto'>🗑 삭제</button></div>";
 }
 function updBulk(){const bar=$("bulkbar");if(!bar)return;if(SEL.size>0){bar.style.display="flex";$("bulkcount").textContent=SEL.size+"명 선택";}else bar.style.display="none";}
 if($("bulk_clear"))$("bulk_clear").onclick=()=>{SEL.clear();renderUsers();};
