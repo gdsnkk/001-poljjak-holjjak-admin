@@ -157,7 +157,7 @@
 
     <section id="dash" class="on">
       <div class="urow" style="justify-content:space-between;align-items:center">
-        <div class="seg-toggle"><button class="segbtn on" data-p="day">일별</button><button class="segbtn" data-p="week">주별</button></div>
+        <div class="seg-toggle"><button class="segbtn on" data-p="day">일별 · 30일</button></div>
         <span style="font-size:11px;color:var(--faint)">운영진 제외 · 활성=플레이 기준 · <span id="dash_range">최근 7일</span></span>
       </div>
       <div id="metricRows"></div>
@@ -519,7 +519,7 @@ setInterval(()=>{
 
 let DASH_PERIOD="day";
 async function loadDash(){
-  const {data,error}=await sb.rpc("admin_dashboard",{p_period:DASH_PERIOD,p_points:7});
+  const {data,error}=await sb.rpc("admin_dashboard",{p_period:"day",p_points:30});
   if(error||!data)return;
   const k=data.kpi||{}, s=data.series||[], isWk=DASH_PERIOD==="week", per=isWk?"전주":"전일", cur=isWk?"이번주":"오늘";
   const labels=s.map(r=>String(r.bucket).slice(5));
@@ -531,6 +531,7 @@ async function loadDash(){
     {t:"신규 가입 ("+cur+")", cur:k.new_today, prev:k.new_prev, data:s.map(r=>r.new_users||0), color:"#6ee7a0"},
     {t:(isWk?"활성 (WAU)":"활성 (DAU)"), cur:k.dau_today, prev:k.dau_prev, data:s.map(r=>r.active||0), color:"#ffb454", sub:isWk?"주간 활성 유저":"오늘 활성 유저"},
     {t:"플레이", cur:k.plays_today, prev:k.plays_prev, data:s.map(r=>r.plays||0), color:"#63e0ff", sub:(k.dau_today?(isWk?"WAU":"DAU")+"당 "+perAct.toFixed(1)+"판":"")},
+    {t:"📺 리워드 광고 시청", cur:k.reward_today, prev:k.reward_prev, data:s.map(r=>r.reward||0), color:"#ff9db8"},
     {t:"총 유저", cur:k.total_users, prev:null, data:cum, color:"#b9a5ff", sub:"유저당 🪙"+perUser.toLocaleString()+" · 유통 🪙"+(k.coins||0).toLocaleString()}
   ];
   const wrap=$("metricRows"); wrap.innerHTML="";
@@ -544,7 +545,7 @@ async function loadDash(){
   $("k_mau").textContent=(k.mau||0).toLocaleString();
   $("k_stick").textContent=(k.mau?Math.round((k.dau_today||0)/k.mau*100):0)+"%";
   if($("k_stick_lbl"))$("k_stick_lbl").textContent=isWk?"WAU/MAU":"DAU/MAU";
-  if($("dash_range"))$("dash_range").textContent=isWk?"최근 7주":"최근 7일";
+  if($("dash_range"))$("dash_range").textContent="최근 30일";
 }
 let _tipEl;
 function showTip(cx,ty,txt){if(!_tipEl){_tipEl=document.createElement("div");_tipEl.className="chtip";document.body.appendChild(_tipEl);}_tipEl.textContent=txt;_tipEl.style.display="block";_tipEl.style.left=cx+"px";_tipEl.style.top=(ty-6)+"px";}
@@ -610,8 +611,9 @@ async function loadAnn(){
   const el=$("annList");if(!data){el.textContent="없음";return;}
   el.innerHTML=data.map(a=>{const dt=String(a.created_at||"").slice(0,10),sc=a.starts_at?(" · 예약 "+String(a.starts_at).slice(0,10)):"",tg=a.kind==='event'?'t':a.kind==='update'?'a':'u';
     const thumb=a.image_url?("<img src='"+a.image_url+"' style='width:40px;height:40px;object-fit:cover;border-radius:6px;flex:none'>"):"";
-    return "<div class='cfgrow' style='align-items:center;gap:9px'>"+thumb+"<label style='width:auto;flex:1'><span class='tag "+tg+"'>"+KLBL[a.kind]+"</span> <b style='color:var(--ink)'>"+a.title+"</b><br><span style='font-size:10px;color:var(--faint)'>"+dt+sc+(a.active?"":" · 내림 상태")+"</span></label><button class='btn gh sm' data-id='"+a.id+"' data-on='"+(!a.active)+"'>"+(a.active?"내리기":"올리기")+"</button></div>";}).join("")||"없음";
+    return "<div class='cfgrow' style='align-items:center;gap:9px'>"+thumb+"<label style='width:auto;flex:1'><span class='tag "+tg+"'>"+KLBL[a.kind]+"</span> <b style='color:var(--ink)'>"+a.title+"</b><br><span style='font-size:10px;color:var(--faint)'>"+dt+sc+(a.active?"":" · 내림 상태")+"</span></label><button class='btn gh sm' data-id='"+a.id+"' data-on='"+(!a.active)+"'>"+(a.active?"내리기":"올리기")+"</button><button class='btn gh sm' data-del='"+a.id+"' style='color:var(--red);border-color:var(--red)'>🗑</button></div>";}).join("")||"없음";
   el.querySelectorAll("[data-id]").forEach(b=>b.onclick=async()=>{const{error}=await sb.rpc("admin_set_announcement",{p_id:Number(b.dataset.id),p_active:b.dataset.on==="true"});error?toast(error.message,1):(toast("변경됨"),loadAnn());});
+  el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("이 공지를 완전 삭제할까요?\n되돌릴 수 없습니다."))return;const{error}=await sb.rpc("admin_delete_announcement",{p_id:Number(b.dataset.del)});error?toast(error.message,1):(toast("🗑 삭제됨"),loadAnn());});
 }
 
 const UTOT={char:18,plat:12,acc:23,egg:20,badge:20,set:20};
@@ -619,6 +621,7 @@ let USERS=[], SEL=new Set();
 $("u_search").addEventListener("keydown",e=>{if(e.key==="Enter")loadUsers(e.target.value.trim());});
 if($("u_sort"))$("u_sort").onchange=()=>loadUsers($("u_search").value.trim());
 function ufmt(n){return Number(n||0).toLocaleString();}
+function prov(p){return {google:"🟢 구글",apple:"⚫ 애플",kakao:"🟡 카카오",email:"✉️ 이메일"}[p]||("・"+(p||"?"));}
 async function loadUsers(q){
   const sort=$("u_sort")?$("u_sort").value:"recent";
   const {data,error}=await sb.rpc("admin_user_stats",{p_search:q||"",p_limit:100,p_sort:sort});
@@ -632,7 +635,7 @@ function renderUsers(){
   USERS.forEach(u=>{const tag=u.role==="admin"?"a":u.role==="tester"?"t":"u";
     h+="<tr class='urow-main' data-id='"+u.id+"'>"+
       "<td><input type='checkbox' class='usel' data-id='"+u.id+"'"+(SEL.has(u.id)?" checked":"")+"></td>"+
-      "<td><b>"+(u.nickname||"—")+"</b><br><small style='color:var(--faint);font-size:10px'>"+(u.email||"")+"</small></td>"+
+      "<td><b>"+(u.nickname||"—")+"</b> <small style='font-size:9px;color:var(--faint)'>"+prov(u.provider)+"</small><br><small style='color:var(--faint);font-size:10px'>"+(u.email||"")+"</small></td>"+
       "<td>"+ufmt(u.coins)+"</td>"+
       "<td><span style='color:var(--green)'>+"+ufmt(u.earned)+"</span> / <span style='color:var(--red)'>-"+ufmt(u.spent)+"</span></td>"+
       "<td>"+ufmt(u.plays)+"</td>"+
@@ -657,13 +660,14 @@ function udetail(u){
     "<div><label>뱃지</label>"+m(u.badges,UTOT.badge)+"</div>"+
     "<div><label>세트</label>"+m(u.sets,UTOT.set)+"</div>"+
     "<div><label>가챠</label>"+ufmt(u.gacha)+"회</div>"+
+    "<div><label>가입경로</label>"+prov(u.provider)+"</div>"+
     "<div><label>결제금액</label><small style='color:var(--faint)'>수익화 후</small></div>"+
-    "<div><label>리워드시청</label><small style='color:var(--faint)'>수익화 후</small></div>"+
+    "<div><label>리워드시청</label>"+ufmt(u.reward_views)+"회</div>"+
     "<div><label>세그먼트</label>"+((u.segments||[]).join(", ")||"—")+"</div>"+
     "<div><label>가입</label>"+d(u.created_at)+"</div>"+
     "<div><label>최근활동</label>"+d(u.last_at)+"</div>"+
     "</div>"+
-    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button><button class='btn gh sm' data-a='del' data-id='"+u.id+"' style='color:var(--red);border-color:var(--red);margin-left:auto'>🗑 삭제</button></div>";
+    "<div class='btns' style='margin-top:10px'><button class='btn gh sm' data-a='coin' data-id='"+u.id+"'>코인</button><button class='btn gh sm' data-a='role' data-id='"+u.id+"'>역할</button><button class='btn gh sm' data-a='seg' data-id='"+u.id+"'>+태그</button><button class='btn gh sm' data-a='notice' data-id='"+u.id+"'>📨 알림</button><button class='btn gh sm' data-a='del' data-id='"+u.id+"' style='color:var(--red);border-color:var(--red);margin-left:auto'>🗑 삭제</button></div>";
 }
 function updBulk(){const bar=$("bulkbar");if(!bar)return;if(SEL.size>0){bar.style.display="flex";$("bulkcount").textContent=SEL.size+"명 선택";}else bar.style.display="none";}
 if($("bulk_clear"))$("bulk_clear").onclick=()=>{SEL.clear();renderUsers();};
@@ -690,6 +694,7 @@ async function userAction(act,id){let error;
   if(act==="coin"){const n=prompt("지급할 코인 (음수=차감)");if(n===null)return;({error}=await sb.rpc("admin_grant_coins",{p_target:id,p_amount:Number(n),p_reason:"🛠 어드민 지급"}));}
   else if(act==="role"){const r=prompt("역할: user / tester / admin");if(!r)return;({error}=await sb.rpc("admin_set_role",{p_target:id,p_role:r}));}
   else if(act==="seg"){const s=prompt("세그먼트 추가 (예: promo1)");if(!s)return;({error}=await sb.rpc("admin_set_segment",{p_target:id,p_segment:s,p_add:true}));}
+  else if(act==="notice"){const b=prompt("이 유저에게 보낼 알림 내용 (문의 답변 등)");if(!b||!b.trim())return;const ttl=prompt("알림 제목 (비우면 '📢 알림')","📢 알림")||"📢 알림";({error}=await sb.rpc("admin_send_notice",{p_user:id,p_title:ttl,p_body:b.trim()}));if(!error){toast("📨 알림 보냄");return;}}
   else if(act==="del"){
     const u=USERS.find(x=>x.id===id)||{};
     if(!confirm("⚠️ 이 유저를 완전 삭제할까요?\n\n닉네임: "+(u.nickname||"—")+"\n이메일: "+(u.email||"—")+"\n\n계정·기록·보유템·코인이 전부 영구 삭제되며 되돌릴 수 없습니다."))return;
